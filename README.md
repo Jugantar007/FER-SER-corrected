@@ -42,6 +42,11 @@ Evaluation reports three numbers side by side: 8-class, 4-class-by-summation (**
 deployed protocol — report this one**), and the legacy max()+filtered protocol kept only
 to measure `protocol_inflation_points` against the original 94.41% figure.
 
+**Result:** test accuracy (4-class, summation) **70.83%** (macro F1 0.695, 95% CI [65.00,
+76.67]) vs. the original 94.41% — see `outputs/SER/ser_corrected_results.json` for the
+full breakdown, including the legacy-protocol comparison (70.14%, i.e. actor-disjoint
+splitting alone removed the inflation the old random split introduced).
+
 ## Reproducing a run
 
 Both notebooks assume a Colab (or similar) environment with GPU access:
