@@ -1,0 +1,64 @@
+{
+  "dataset": {
+    "source": "kaggle sujaykapadnis/emotion-recognition-dataset",
+    "IMPORTANT": "The manuscript claims FER2013 + ExpW + supplementary data. That does not describe this model. Correct Section 3.1.",
+    "classes_alphabetical": [
+      "Angry",
+      "Happy",
+      "Neutral",
+      "Sad"
+    ]
+  },
+  "protocol": {
+    "split": "pHash-cluster-grouped, class-stratified, 70/15/15",
+    "phash_threshold": 5,
+    "selection_criterion": "minimum validation loss",
+    "limitation": "pHash removes near-duplicate IMAGES; different photographs of the same person may still span splits. State this in the paper."
+  },
+  "n_images": {
+    "train": 9108,
+    "val": 1952,
+    "test": 1948
+  },
+  "duplicate_clusters": 148,
+  "images_in_duplicate_clusters": 324,
+  "best_epoch": 4,
+  "val_accuracy_selection_metric": 0.8463114754098361,
+  "test_accuracy_REPORT_THIS": 0.8249486652977412,
+  "test_macro_f1": 0.8194168768493882,
+  "test_ci95": [
+    0.8080082135523614,
+    0.8408752566735112
+  ],
+  "test_confusion_matrix": [
+    [
+      144,
+      5,
+      19,
+      28
+    ],
+    [
+      2,
+      523,
+      19,
+      16
+    ],
+    [
+      15,
+      8,
+      443,
+      137
+    ],
+    [
+      13,
+      7,
+      72,
+      497
+    ]
+  ],
+  "selection_optimism_points": 2.1362810112094843,
+  "originally_reported": {
+    "value": 85.29,
+    "why_invalid": "maximum validation accuracy over 25 epochs on a random split with no duplicate control, reported from the same set used to select the checkpoint"
+  }
+}

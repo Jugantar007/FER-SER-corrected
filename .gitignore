@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Raw dataset downloads (reproduce via the notebooks, not tracked here)
+emotion_data/
+*.zip
+!outputs/**/*.zip
