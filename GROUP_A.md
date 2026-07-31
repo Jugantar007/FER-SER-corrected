@@ -144,11 +144,25 @@ explicitly, derives RMSE as `sqrt(mean_squared_error)`, records the resolution i
 `column_resolution`, and **exits** rather than guessing. `quant_05` refuses to
 consume a ranking produced by the heuristic path.
 
-**A2 — honest hypothesis reporting.** The script tags squeeze-and-excitation
-layers by name and reports `hypothesis_se_blocks_rank_highest` as true/false, or
-`null` with `se_tagging_reliable: false` when no SE layer could be identified by
-name at all. A null is not a refutation; it means the ranking cannot settle the
-question and the top layers need checking against the architecture by hand.
+**A2 — structural hypothesis testing, not name matching.** Name matching cannot
+work here: `onnx2tf` rewrites nodes to generic names
+(`model/tf.math.reduce_mean_7/Mean`), and an early version of the name pattern
+matched TFLite's `Squeeze` *reshape operator*, reporting "4 squeeze-and-excitation
+layers" in the SER model — a plain CNN with none.
+
+The hypothesis is therefore tested by **op type**, using the debugger's
+`op_name` column. `MEAN` is the marker: it is the global-average-pool that opens
+each SE module, and the FER graph contains exactly 17 (16 MBConv SE modules + 1
+head pool). `LOGISTIC` is deliberately excluded — EfficientNet's SiLU is
+`x*sigmoid(x)`, so sigmoid appears 65 times and is not SE-specific; including it
+diluted the signal below significance.
+
+Enrichment uses an exact hypergeometric p-value rather than an arbitrary
+multiplier, computed primarily over the layers above the sensitivity threshold
+(the paper's own definition of "sensitive") and secondarily over the top-k. Both
+are reported, because the conclusion depends on which cut is taken.
+`hypothesis_se_blocks_rank_highest` is `null` when neither test can settle the
+question — a null is not a refutation.
 
 **A5 — SER first.** Option 3 from the README. The SER model is already Keras, so
 `tfmot` applies with no rebuild. `quant_06` fine-tunes from the corrected
@@ -298,12 +312,31 @@ gone. Publishable as a negative result: it strengthens the case for dynamic rang
 as the default (0.45 MB at baseline accuracy) and bounds how much of the INT8
 failure a handful of layers can explain.
 
+### A4 — calibration sensitivity, SER
+
+18 configs: {50, 200, 500} × {balanced, natural} × 3 seeds, each on the full test
+set. FP32 baseline 60.83% (8-class). **Overall spread across all 18: 7.92 points.**
+
+| config | mean % | SD | min % | max % | seed spread |
+|---|---|---|---|---|---|
+| n50 balanced | 50.28 | 1.37 | 48.75 | 52.08 | 3.33 |
+| n50 natural | 50.00 | 0.34 | 49.58 | 50.42 | 0.83 |
+| n200 balanced | 51.81 | 1.99 | 50.00 | 54.58 | 4.58 |
+| n200 natural | 51.81 | 2.89 | 48.33 | 55.42 | **7.08** |
+| n500 balanced | 53.47 | 3.05 | 49.17 | 55.83 | 6.67 |
+| n500 natural | 55.28 | 0.71 | 54.58 | 56.25 | 1.67 |
+
+More calibration data raises the mean (50.3% → 53.5–55.3%), but does **not** buy
+stability: seed alone moves accuracy by up to 7.08 points at fixed n, and SD does
+not shrink monotonically with n. That is enough to produce "4/8 versus 7/8" on an
+eight-sample set, so much of the paper's unexplained variation was calibration
+noise. Replace that sentence with mean ± SD and the error-bar figure.
+
 ### Still outstanding
 
 | Item | State |
 |---|---|
-| A4 (SER) | running — 18 configs × full test set |
-| A3 (FER) | queued — 4 selective builds × 1948 images, several hours |
+| A3 (FER) | running — 4 selective builds × 1948 images, several hours |
 | A4 (FER) | not started; 18 × ~70 min ≈ 21 h, genuinely an overnight-plus job |
 | A5 | implemented, not run — needs the isolated venv described above |
 
