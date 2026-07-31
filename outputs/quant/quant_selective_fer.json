@@ -1,0 +1,145 @@
+{
+  "model": "fer",
+  "fp32_baseline_accuracy": 0.8249486652977412,
+  "ranked_layers_source": "D:\\Research FER and SER\\artifacts\\results\\quant_layerwise_fer.json",
+  "reference_formats": {
+    "int8_full_perchannel": {
+      "accuracy": 0.6124229979466119,
+      "size_mb": 4.891,
+      "top1_agreement": 0.6180698151950719,
+      "mean_abs_prob_diff": 0.17831669531744945,
+      "max_abs_prob_diff": 0.9960325081344855,
+      "mean_kl_divergence": 0.6784547991348631
+    },
+    "int8_full_pertensor": {
+      "accuracy": 0.33213552361396304,
+      "size_mb": 4.165,
+      "top1_agreement": 0.3459958932238193,
+      "mean_abs_prob_diff": 0.29089531897520626,
+      "max_abs_prob_diff": 0.9867447809885508,
+      "mean_kl_divergence": 1.0615866943102459
+    },
+    "dynrange": {
+      "accuracy": 0.824435318275154,
+      "size_mb": 4.531,
+      "top1_agreement": 0.9507186858316222,
+      "mean_abs_prob_diff": 0.01987118863451091,
+      "max_abs_prob_diff": 0.5591660622682746,
+      "mean_kl_divergence": 0.01761380595011843
+    }
+  },
+  "selective_runs": [
+    {
+      "k_layers_kept_float": 3,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631"
+      ],
+      "size_mb": 4.891,
+      "accuracy": 0.6319301848049281,
+      "macro_f1": 0.5835579441983655,
+      "ci95_low": 0.6108829568788501,
+      "ci95_high": 0.6519507186858317,
+      "accuracy_delta_vs_fp32_points": -19.3,
+      "top1_agreement": 0.6319301848049281,
+      "mean_abs_prob_diff": 0.17679944195845618,
+      "max_abs_prob_diff": 0.995674577237571,
+      "mean_kl_divergence": 0.6670082969444026
+    },
+    {
+      "k_layers_kept_float": 5,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631",
+        "model/tf.math.add_31/Add;model/tf.nn.convolution_21/convolution;Const_1101",
+        "model/tf.math.reduce_mean_5/Mean"
+      ],
+      "size_mb": 4.898,
+      "accuracy": 0.6314168377823408,
+      "macro_f1": 0.5829646011243714,
+      "ci95_low": 0.6108829568788501,
+      "ci95_high": 0.6519507186858317,
+      "accuracy_delta_vs_fp32_points": -19.35,
+      "top1_agreement": 0.6324435318275154,
+      "mean_abs_prob_diff": 0.17664701442412803,
+      "max_abs_prob_diff": 0.99589309578762,
+      "mean_kl_divergence": 0.6656507288467948
+    },
+    {
+      "k_layers_kept_float": 10,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631",
+        "model/tf.math.add_31/Add;model/tf.nn.convolution_21/convolution;Const_1101",
+        "model/tf.math.reduce_mean_5/Mean",
+        "model/tf.math.add_19/Add;model/tf.nn.convolution_13/convolution;Const_1311",
+        "model/tf.math.add_12/Add;model/tf.nn.convolution_9/convolution;Const_1421",
+        "model/tf.math.reduce_mean_6/Mean",
+        "model/tf.math.add_69/Add;model/tf.nn.convolution_45/convolution;Const_491",
+        "model/tf.math.sigmoid_5/Sigmoid"
+      ],
+      "size_mb": 4.96,
+      "accuracy": 0.6267967145790554,
+      "macro_f1": 0.5766890579617586,
+      "ci95_low": 0.6062628336755647,
+      "ci95_high": 0.6478439425051334,
+      "accuracy_delta_vs_fp32_points": -19.82,
+      "top1_agreement": 0.6314168377823408,
+      "mean_abs_prob_diff": 0.17519668649294423,
+      "max_abs_prob_diff": 0.9957401174657186,
+      "mean_kl_divergence": 0.6633738488570388
+    },
+    {
+      "k_layers_kept_float": 15,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631",
+        "model/tf.math.add_31/Add;model/tf.nn.convolution_21/convolution;Const_1101",
+        "model/tf.math.reduce_mean_5/Mean",
+        "model/tf.math.add_19/Add;model/tf.nn.convolution_13/convolution;Const_1311",
+        "model/tf.math.add_12/Add;model/tf.nn.convolution_9/convolution;Const_1421",
+        "model/tf.math.reduce_mean_6/Mean",
+        "model/tf.math.add_69/Add;model/tf.nn.convolution_45/convolution;Const_491",
+        "model/tf.math.sigmoid_5/Sigmoid",
+        "model/tf.math.sigmoid/Sigmoid",
+        "model/tf.math.sigmoid_1/Sigmoid",
+        "model/tf.math.add_95/Add;model/tf.nn.convolution_61/convolution;Const_91",
+        "model/tf.math.add_50/Add;model/tf.nn.convolution_33/convolution;Const_801",
+        "model/tf.math.add_33/Add;model/tf.nn.convolution_23/convolution;Const_1061"
+      ],
+      "size_mb": 5.21,
+      "accuracy": 0.6283367556468172,
+      "macro_f1": 0.5837785811406512,
+      "ci95_low": 0.606776180698152,
+      "ci95_high": 0.648870636550308,
+      "accuracy_delta_vs_fp32_points": -19.66,
+      "top1_agreement": 0.6293634496919918,
+      "mean_abs_prob_diff": 0.17493798830226923,
+      "max_abs_prob_diff": 0.9956227787032021,
+      "mean_kl_divergence": 0.6587025967530996
+    }
+  ],
+  "verdict": "best selective build (k=3) reaches 63.19% at 4.891 MB, +1.95 points vs full INT8 (61.24%) and -19.30 points vs FP32. Full INT8 is NOT recovered to FP32 level; report this honestly and use it to bound how much of the failure a few layers explain.",
+  "claim_to_check": "If a selective build reaches FP32-level accuracy at a size near full INT8, full integer quantization is recoverable and this is a novel result for the paper.",
+  "_environment": {
+    "timestamp": "2026-08-01T03:58:28",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}
