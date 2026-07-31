@@ -1,0 +1,149 @@
+{
+  "model": "ser",
+  "fp32_baseline_accuracy": 0.6083333333333333,
+  "ranked_layers_source": "D:\\Research FER and SER\\artifacts\\results\\quant_layerwise_ser.json",
+  "reference_formats": {
+    "int8_full_perchannel": {
+      "accuracy": 0.5083333333333333,
+      "size_mb": 0.449,
+      "top1_agreement": 0.7708333333333334,
+      "mean_abs_prob_diff": 0.04775940773078623,
+      "max_abs_prob_diff": 0.680291473865509,
+      "mean_kl_divergence": 0.29422584346267144
+    },
+    "int8_full_pertensor": {
+      "accuracy": 0.5208333333333334,
+      "size_mb": 0.434,
+      "top1_agreement": 0.7583333333333333,
+      "mean_abs_prob_diff": 0.04809277694363219,
+      "max_abs_prob_diff": 0.754510223865509,
+      "mean_kl_divergence": 0.29422389155738105
+    },
+    "dynrange": {
+      "accuracy": 0.6041666666666666,
+      "size_mb": 0.446,
+      "top1_agreement": 0.9541666666666667,
+      "mean_abs_prob_diff": 0.015186653031430299,
+      "max_abs_prob_diff": 0.29593169689178467,
+      "mean_kl_divergence": 0.025133228249568332
+    }
+  },
+  "selective_runs": [
+    {
+      "k_layers_kept_float": 3,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean"
+      ],
+      "size_mb": 0.547,
+      "accuracy": 0.5083333333333333,
+      "macro_f1": 0.48248963032991404,
+      "ci95_low": 0.4457291666666667,
+      "ci95_high": 0.5708333333333333,
+      "accuracy_delta_vs_fp32_points": -10.0,
+      "top1_agreement": 0.7625,
+      "mean_abs_prob_diff": 0.04764858460811815,
+      "max_abs_prob_diff": 0.680291473865509,
+      "mean_kl_divergence": 0.29305655156888666,
+      "accuracy_4class": 0.5958333333333333
+    },
+    {
+      "k_layers_kept_float": 5,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean",
+        "sequential_1/batch_normalization_3_1/batchnorm/add_1",
+        "sequential_1/batch_normalization_1_2/batchnorm/add_1"
+      ],
+      "size_mb": 0.549,
+      "accuracy": 0.5083333333333333,
+      "macro_f1": 0.4767689489350284,
+      "ci95_low": 0.44166666666666665,
+      "ci95_high": 0.5708333333333333,
+      "accuracy_delta_vs_fp32_points": -10.0,
+      "top1_agreement": 0.775,
+      "mean_abs_prob_diff": 0.04510378532434313,
+      "max_abs_prob_diff": 0.6671833395957947,
+      "mean_kl_divergence": 0.26383087881249834,
+      "accuracy_4class": 0.6083333333333333
+    },
+    {
+      "k_layers_kept_float": 10,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean",
+        "sequential_1/batch_normalization_3_1/batchnorm/add_1",
+        "sequential_1/batch_normalization_1_2/batchnorm/add_1",
+        "sequential_1/batch_normalization_2_1/batchnorm/add_1",
+        "StatefulPartitionedCall_1:0",
+        "sequential_1/batch_normalization_1/batchnorm/add_1",
+        "sequential_1/conv2d_1_2/Relu;sequential_1/conv2d_1_2/BiasAdd;sequential_1/conv2d_1_2/convolution;sequential_1/conv2d_1_2/Squeeze1",
+        "sequential_1/batch_normalization_1_2/batchnorm/mul_1"
+      ],
+      "size_mb": 0.603,
+      "accuracy": 0.5166666666666667,
+      "macro_f1": 0.48142174171901125,
+      "ci95_low": 0.45,
+      "ci95_high": 0.5833333333333334,
+      "accuracy_delta_vs_fp32_points": -9.17,
+      "top1_agreement": 0.7708333333333334,
+      "mean_abs_prob_diff": 0.04270187352390385,
+      "max_abs_prob_diff": 0.6402020454406738,
+      "mean_kl_divergence": 0.16399955100423905,
+      "accuracy_4class": 0.6125
+    },
+    {
+      "k_layers_kept_float": 15,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean",
+        "sequential_1/batch_normalization_3_1/batchnorm/add_1",
+        "sequential_1/batch_normalization_1_2/batchnorm/add_1",
+        "sequential_1/batch_normalization_2_1/batchnorm/add_1",
+        "StatefulPartitionedCall_1:0",
+        "sequential_1/batch_normalization_1/batchnorm/add_1",
+        "sequential_1/conv2d_1_2/Relu;sequential_1/conv2d_1_2/BiasAdd;sequential_1/conv2d_1_2/convolution;sequential_1/conv2d_1_2/Squeeze1",
+        "sequential_1/batch_normalization_1_2/batchnorm/mul_1",
+        "sequential_1/conv2d_1/Relu;sequential_1/conv2d_1/BiasAdd;sequential_1/conv2d_1/convolution;sequential_1/conv2d_1/Squeeze1",
+        "sequential_1/batch_normalization_1/batchnorm/mul_1",
+        "sequential_1/conv2d_2_1/Relu;sequential_1/conv2d_2_1/BiasAdd;sequential_1/conv2d_2_1/convolution;sequential_1/conv2d_2_1/Squeeze1",
+        "sequential_1/conv2d_3_1/Relu;sequential_1/conv2d_3_1/BiasAdd;sequential_1/conv2d_3_1/convolution;sequential_1/conv2d_3_1/Squeeze1",
+        "sequential_1/batch_normalization_2_1/batchnorm/mul_1"
+      ],
+      "size_mb": 1.702,
+      "accuracy": 0.5875,
+      "macro_f1": 0.563484540769412,
+      "ci95_low": 0.525,
+      "ci95_high": 0.65,
+      "accuracy_delta_vs_fp32_points": -2.08,
+      "top1_agreement": 0.9083333333333333,
+      "mean_abs_prob_diff": 0.021482178015467243,
+      "max_abs_prob_diff": 0.31674185395240784,
+      "mean_kl_divergence": 0.04320998157707092,
+      "accuracy_4class": 0.6916666666666667
+    }
+  ],
+  "verdict": "best selective build (k=15) reaches 58.75% at 1.702 MB, +7.92 points vs full INT8 (50.83%) and -2.08 points vs FP32. Full INT8 is NOT recovered to FP32 level; report this honestly and use it to bound how much of the failure a few layers explain.",
+  "claim_to_check": "If a selective build reaches FP32-level accuracy at a size near full INT8, full integer quantization is recoverable and this is a novel result for the paper.",
+  "_environment": {
+    "timestamp": "2026-07-31T20:45:59",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}

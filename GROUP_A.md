@@ -229,6 +229,84 @@ pixels than the notebook reported. `config.FER_RESIZE_FILTER` pins it.
 
 ---
 
+## Results
+
+Committed under `outputs/quant/` (JSON + CSV + figures). `quant_format_evaluation.json`
+is the source of truth for A1/A6.
+
+### A1 + A6 — full test-set evaluation
+
+FER, n=1948. The FP32 TFLite control reproduces the PyTorch baseline to the
+digit (82.49%), so the conversion chain is clean and every drop below is
+attributable to quantization, not conversion.
+
+| format | MB | acc % | bal acc | macro F1 | kappa | agree w/ FP32 | Δacc pts | mean KL |
+|---|---|---|---|---|---|---|---|---|
+| fp32 | 16.04 | 82.49 | 81.18 | 0.819 | 0.756 | 1.000 | — | 0.0000 |
+| fp16 | 8.08 | 82.55 | 81.22 | 0.820 | 0.757 | 0.999 | +0.05 | 0.0000 |
+| dynrange | 4.53 | 82.44 | 80.87 | 0.818 | 0.755 | 0.951 | −0.05 | 0.0176 |
+| int8_full_perchannel | 4.89 | 61.24 | 56.63 | 0.567 | 0.453 | 0.618 | **−21.25** | 0.6785 |
+| int8_full_pertensor | 4.17 | 33.21 | 27.17 | 0.206 | 0.038 | 0.346 | **−49.28** | 1.0616 |
+
+SER, n=240, 4-class summation (the deployed protocol — publish this row set):
+
+| format | MB | 4-class acc % | macro F1 | CI95 | 8-class acc % |
+|---|---|---|---|---|---|
+| fp32 | 1.70 | 70.83 | 0.695 | [65.00, 76.25] | 60.83 |
+| fp16 | 0.86 | 70.83 | 0.695 | [65.00, 76.25] | 60.83 |
+| dynrange | 0.45 | 71.25 | 0.698 | [65.42, 77.08] | 60.42 |
+| int8_full_perchannel | 0.45 | 59.58 | 0.568 | [53.33, 65.83] | 50.83 |
+| int8_full_pertensor | 0.43 | 62.50 | 0.605 | [56.25, 68.75] | 52.08 |
+
+The paper's central claim survives on both models: **dynamic range preserves
+baseline behaviour** (−0.05 pts FER, +0.42 pts SER) **while full INT8 collapses**.
+
+**A6 — and the per-channel/per-tensor ordering is not universal.** For FER,
+per-channel is dramatically better than per-tensor (61.24% vs 33.21%, a 28-point
+gap). For SER the ordering **reverses**: per-tensor beats per-channel (62.50% vs
+59.58%). This is exactly why the README insists on stating which variant the
+reported "full INT8" corresponds to — the two models disagree, so the convention
+cannot be left implicit.
+
+### A2 — layer-wise error profiling
+
+FER: 245 ranked layers, 9 above RMSE/scale 0.5. The single highest-error tensor
+in the network is a global-average-pool (`tf.math.reduce_mean_7/Mean`, 3.84).
+
+Section 5.3's hypothesis is **supported, by op type rather than by name**:
+MEAN ops are **4.8× enriched** among the 9 layers above threshold (3 of 9,
+hypergeometric p = 0.0181). The weaker top-15 cut gives 2.9×, p = 0.0750, and
+both are reported. See the method note above for why MEAN is the marker and
+LOGISTIC is not.
+
+SER: 20 ranked layers, **none** above threshold — the highest is 0.464
+(`dense_1/Relu`). Consistent with SER's smaller INT8 drop, and the SE question is
+reported as `null`/undetermined because the model has no SE blocks at all.
+
+### A3 — selective (mixed-precision) quantization, SER
+
+| k layers kept float | MB | acc % (8-class) | Δ vs FP32 | agreement |
+|---|---|---|---|---|
+| 3 | 0.547 | 50.83 | −10.00 | 0.762 |
+| 5 | 0.549 | 50.83 | −10.00 | 0.775 |
+| 10 | 0.603 | 51.67 | −9.17 | 0.771 |
+| 15 | 1.702 | 58.75 | −2.08 | 0.908 |
+
+**Full INT8 is not recovered.** k=15 regains +7.92 points over full INT8, but the
+model is then 1.702 MB — essentially FP32's 1.70 MB, so the compression benefit is
+gone. Publishable as a negative result: it strengthens the case for dynamic range
+as the default (0.45 MB at baseline accuracy) and bounds how much of the INT8
+failure a handful of layers can explain.
+
+### Still outstanding
+
+| Item | State |
+|---|---|
+| A4 (SER) | running — 18 configs × full test set |
+| A3 (FER) | queued — 4 selective builds × 1948 images, several hours |
+| A4 (FER) | not started; 18 × ~70 min ≈ 21 h, genuinely an overnight-plus job |
+| A5 | implemented, not run — needs the isolated venv described above |
+
 ## What Group A does not cover
 
 Latency, memory, throughput and thermal behaviour. Those need the Raspberry Pi

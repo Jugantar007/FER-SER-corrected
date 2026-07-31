@@ -1,0 +1,100 @@
+{
+  "formats": [
+    "fp32",
+    "fp16",
+    "dynrange",
+    "int8_full_perchannel",
+    "int8_full_pertensor"
+  ],
+  "calibration": {
+    "n_samples": 200,
+    "balanced": true,
+    "source": "TRAINING split only (never val/test)"
+  },
+  "int8_inference_io": "int8",
+  "per_channel_note": "int8_full_perchannel is the TFLite default; int8_full_pertensor sets converter._experimental_disable_per_channel = True",
+  "models": {
+    "fer": {
+      "pytorch_mb": 16.354,
+      "onnx_mb": 16.065,
+      "onnx_reexported_from_checkpoint": true,
+      "onnx_max_logit_diff_vs_pytorch": 0.00015723705291748047,
+      "saved_model_max_logit_diff_vs_onnx": 1.7881393432617188e-05,
+      "tflite": {
+        "fp32": {
+          "bytes": 16034940,
+          "mb": 16.035,
+          "sha256_16": "4a6b83e8ff65cbc3"
+        },
+        "fp16": {
+          "bytes": 8076980,
+          "mb": 8.077,
+          "sha256_16": "0d1a3ba7a7146f03"
+        },
+        "dynrange": {
+          "bytes": 4531296,
+          "mb": 4.531,
+          "sha256_16": "4e5c5d8ff092a09c"
+        },
+        "int8_full_perchannel": {
+          "bytes": 4891392,
+          "mb": 4.891,
+          "sha256_16": "555ac11955e9b616"
+        },
+        "int8_full_pertensor": {
+          "bytes": 4165056,
+          "mb": 4.165,
+          "sha256_16": "4d16eab5d172039f"
+        }
+      }
+    },
+    "ser": {
+      "keras_kb": 5162.4,
+      "keras_config_patched": true,
+      "tflite": {
+        "fp32": {
+          "bytes": 1701012,
+          "mb": 1.701,
+          "sha256_16": "c26a95c831b3ecb7"
+        },
+        "fp16": {
+          "bytes": 857584,
+          "mb": 0.858,
+          "sha256_16": "24c80012846c8e89"
+        },
+        "dynrange": {
+          "bytes": 445592,
+          "mb": 0.446,
+          "sha256_16": "8b559f70e13d7f93"
+        },
+        "int8_full_perchannel": {
+          "bytes": 449032,
+          "mb": 0.449,
+          "sha256_16": "8d529ad0181b1d18"
+        },
+        "int8_full_pertensor": {
+          "bytes": 434392,
+          "mb": 0.434,
+          "sha256_16": "2c79702538c2f8b5"
+        }
+      }
+    }
+  },
+  "_environment": {
+    "timestamp": "2026-07-31T16:55:40",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}

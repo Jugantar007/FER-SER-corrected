@@ -1,0 +1,228 @@
+{
+  "note": "Stages corrected-notebook artifacts for Group A. No training.",
+  "paths": {
+    "fer_data_root": "D:\\FER TFlite\\archive (1)\\dataset",
+    "ravdess_root": "D:\\SER Tflite\\ravdess-emotional-speech-audio",
+    "outputs": "D:\\Research FER and SER\\outputs"
+  },
+  "fer_split": {
+    "sizes": {
+      "train": 9108,
+      "val": 1952,
+      "test": 1948
+    },
+    "pairwise_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    }
+  },
+  "fer_preprocessing_max_diff_vs_torchvision": 0.0,
+  "fer_baseline": {
+    "accuracy": 0.824435318275154,
+    "published": 0.8249486652977412,
+    "delta": -0.0005133470225872072,
+    "metrics": {
+      "n_samples": 1948,
+      "accuracy": 0.824435318275154,
+      "balanced_accuracy": 0.8113567908453873,
+      "macro_f1": 0.8189951929475769,
+      "weighted_f1": 0.8248787286804258,
+      "cohen_kappa": 0.7554033379923804,
+      "per_class": {
+        "Angry": {
+          "precision": 0.8275862068965517,
+          "recall": 0.7346938775510204,
+          "f1": 0.7783783783783784,
+          "support": 196
+        },
+        "Happy": {
+          "precision": 0.9631675874769797,
+          "recall": 0.9339285714285714,
+          "f1": 0.9483227561196736,
+          "support": 560
+        },
+        "Neutral": {
+          "precision": 0.8007246376811594,
+          "recall": 0.7330016583747927,
+          "f1": 0.7653679653679654,
+          "support": 603
+        },
+        "Sad": {
+          "precision": 0.7319587628865979,
+          "recall": 0.8438030560271647,
+          "f1": 0.7839116719242902,
+          "support": 589
+        }
+      },
+      "confusion_matrix": [
+        [
+          144,
+          5,
+          19,
+          28
+        ],
+        [
+          2,
+          523,
+          19,
+          16
+        ],
+        [
+          15,
+          8,
+          442,
+          138
+        ],
+        [
+          13,
+          7,
+          72,
+          497
+        ]
+      ],
+      "class_names": [
+        "Angry",
+        "Happy",
+        "Neutral",
+        "Sad"
+      ]
+    }
+  },
+  "ser_test": {
+    "n_samples": 240,
+    "class_counts": [
+      16,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32,
+      32
+    ]
+  },
+  "ser_train_cache": {
+    "n_files": 960,
+    "n_samples": 2880,
+    "actors": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "augmented": true,
+    "class_counts": [
+      192,
+      384,
+      384,
+      384,
+      384,
+      384,
+      384,
+      384
+    ]
+  },
+  "ser_baseline": {
+    "accuracy_8class": 0.6083333333333333,
+    "accuracy_4class_summation": 0.7083333333333334,
+    "published_8class": 0.6083333333333333,
+    "published_4class": 0.7083333333333334,
+    "keras_config_patched": true,
+    "metrics_4class": {
+      "n_samples": 240,
+      "accuracy": 0.7083333333333334,
+      "balanced_accuracy": 0.7135416666666666,
+      "macro_f1": 0.6947562319239774,
+      "weighted_f1": 0.6932745719138779,
+      "cohen_kappa": 0.6108228317272053,
+      "per_class": {
+        "Neutral": {
+          "precision": 0.6551724137931034,
+          "recall": 0.7916666666666666,
+          "f1": 0.7169811320754716,
+          "support": 48
+        },
+        "Happy": {
+          "precision": 0.6986301369863014,
+          "recall": 0.796875,
+          "f1": 0.7445255474452555,
+          "support": 64
+        },
+        "Sad": {
+          "precision": 0.6944444444444444,
+          "recall": 0.390625,
+          "f1": 0.5,
+          "support": 64
+        },
+        "Angry": {
+          "precision": 0.7671232876712328,
+          "recall": 0.875,
+          "f1": 0.8175182481751825,
+          "support": 64
+        }
+      },
+      "confusion_matrix": [
+        [
+          38,
+          3,
+          6,
+          1
+        ],
+        [
+          5,
+          51,
+          5,
+          3
+        ],
+        [
+          15,
+          11,
+          25,
+          13
+        ],
+        [
+          0,
+          8,
+          0,
+          56
+        ]
+      ],
+      "class_names": [
+        "Neutral",
+        "Happy",
+        "Sad",
+        "Angry"
+      ]
+    }
+  },
+  "_environment": {
+    "timestamp": "2026-07-31T16:41:44",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}
