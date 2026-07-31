@@ -57,8 +57,29 @@ Both notebooks assume a Colab (or similar) environment with GPU access:
 3. Outputs (`.pth`/`.keras`, ONNX export, split manifest, results JSON) are written to the
    working directory — copy them into `outputs/<task>/` to match this repo's layout.
 
+## Quantization study (Group A)
+
+`quant/` implements items A1–A6 of `README_GroupA.md` — the deployment-format
+evaluation for the quantization paper. It reuses these notebooks' checkpoints and
+**frozen** test splits; it does not retrain anything. See **`GROUP_A.md`** for the
+runbook, the decisions taken while implementing, and the verification results.
+
+| Item | What it produces | Script |
+|---|---|---|
+| A1, A6 | full test-set metrics for fp32 / fp16 / dynrange / INT8 per-channel / INT8 per-tensor, plus agreement with the FP32 control | `quant_01` → `quant_02` |
+| A2 | per-layer quantization error, ranked | `quant_03` |
+| A3 | selective (mixed-precision) quantization sweep | `quant_05` |
+| A4 | calibration sensitivity (count × balance × seed) | `quant_04` |
+| A5 | quantization-aware training, SER first | `quant_06` |
+
+Latency, memory and thermal numbers are Group B and need the Raspberry Pi; nothing
+here substitutes for them.
+
 ## Citing results
 
 The `*_corrected_results.json` file in each `outputs/` subfolder is the source of truth
 for the numbers to cite; it also records exactly why the originally reported figure
 should not be used.
+
+Quantization results land in `artifacts/results/` (gitignored until they are ready to
+cite). `quant_format_evaluation.json` is the source of truth for A1/A6.
