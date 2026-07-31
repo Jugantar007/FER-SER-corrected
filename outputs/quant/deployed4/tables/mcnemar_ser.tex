@@ -1,0 +1,19 @@
+\begin{table}[htbp]\centering
+\caption{SER paired format comparisons (McNemar, Holm-corrected, $n=240$).}
+\begin{tabular}{llrrrrl}
+\hline
+Format A & Format B & Acc A & Acc B & $\Delta$ & $p_{\mathrm{Holm}}$ & Sig. \\
+\hline
+fp32 & fp16 & 70.83 & 70.83 & +0.00 & 1.00e+00 & ns \\
+fp32 & dynrange & 70.83 & 71.25 & -0.42 & 1.00e+00 & ns \\
+fp32 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 1.73e-04 & *** \\
+fp32 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 6.72e-03 & ** \\
+fp16 & dynrange & 70.83 & 71.25 & -0.42 & 1.00e+00 & ns \\
+fp16 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 1.73e-04 & *** \\
+fp16 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 6.72e-03 & ** \\
+dynrange & int8 full perchannel & 71.25 & 59.58 & +11.67 & 1.82e-05 & *** \\
+dynrange & int8 full pertensor & 71.25 & 62.50 & +8.75 & 8.30e-04 & *** \\
+int8 full perchannel & int8 full pertensor & 59.58 & 62.50 & -2.92 & 1.56e-01 & ns \\
+\hline
+\end{tabular}
+\end{table}

@@ -268,11 +268,10 @@ conversion — which is exactly the role the README assigns the fp32 build.
 The paper's central claim holds on both models: **dynamic range preserves
 baseline behaviour while full INT8 collapses.**
 
-**A6 — the ordering is not universal, and that is the finding.** For FER,
-per-channel beats per-tensor by 28 points (61.24 vs 33.21). For SER the ordering
-**reverses** (62.50 vs 59.58). Two models, opposite answers — so "full INT8"
-cannot be left unqualified in the paper, which is precisely the reviewer question
-the README anticipates.
+**A6.** For FER, per-channel beats per-tensor by 28 points (61.24 vs 33.21). For
+SER the point estimates run the other way (62.50 vs 59.58) — but the paired test
+in §7.5 shows **that difference is not significant**, so it must not be read as a
+reversal. See §7.5 for the correction and why the marginal numbers misled.
 
 ### A2 — layer-wise error profiling
 
@@ -338,6 +337,62 @@ quantization scheme.** The paper can now state mean ± SD across seeds with an
 error-bar figure (`quant_calibration_ser.png`) instead of an anecdote — and
 should report which seed policy it used, because the choice is worth several
 points.
+
+### 7.5 Paired significance tests (McNemar) — and a correction
+
+Every format is evaluated on the **same** held-out samples, so the comparison is
+paired. The bootstrap CIs reported in §7 are *marginal* — one interval per format
+— which discards the pairing and is badly underpowered: two formats can differ
+while their marginal intervals overlap almost completely. McNemar's test uses only
+the discordant samples (one format right, the other wrong), which is the correct
+paired test for two classifiers on one test set.
+
+`mcnemar_compare.py`, Holm-corrected across the 10 within-model comparisons, with
+paired bootstrap CIs on the difference:
+
+| model / view | comparison | Δ pts | b | c | n disc | p | p (Holm) | verdict |
+|---|---|---|---|---|---|---|---|---|
+| FER | fp32 vs dynrange | +0.05 | 44 | 43 | 87 | 1.0 | 1.0 | no difference |
+| FER | fp32 vs int8 per-ch | +21.25 | — | — | — | 3.2e−57 | 2.2e−56 | significant |
+| FER | per-ch vs per-tensor | +28.03 | 847 | 301 | 1148 | 3.2e−58 | 2.3e−57 | significant |
+| SER 8-class | per-ch vs per-tensor | −1.25 | 3 | 6 | 9 | 0.508 | 1.0 | not significant |
+| SER 4-class | fp32 vs dynrange | −0.42 | 3 | 4 | 7 | 1.0 | 1.0 | no difference |
+| SER 4-class | fp32 vs int8 per-ch | +11.25 | — | — | — | 1.9e−05 | 1.7e−04 | significant |
+| SER 4-class | per-ch vs per-tensor | −2.92 | 1 | 8 | 9 | **0.039** | **0.156** | **not significant** |
+
+**The correction.** §7 originally read the SER per-channel/per-tensor gap
+(62.50% vs 59.58%) as the ordering "reversing" between models, and called it a
+headline A6 finding. **That claim does not survive a paired test and has been
+withdrawn.** The difference rests on **9 discordant samples out of 240**, split
+1 vs 8. Uncorrected it is p = 0.039 — nominally significant, which is exactly why
+it looked convincing — but Holm across 10 comparisons puts it at 0.156. With 9
+discordant samples the test has almost no power to begin with.
+
+The defensible A6 statement is: **per-channel is essential on FER (28 points,
+p ≈ 1e−57) and makes no demonstrable difference on SER.** The practical
+recommendation is unchanged — state which variant you used, because on FER the
+choice is worth 28 points — but the "two models disagree" framing was an artifact
+of reading marginal numbers.
+
+Two further results worth taking into the paper:
+
+- **Dynamic range is statistically indistinguishable from FP32** on both models
+  (p = 1.0, both views). "Preserves baseline behaviour" is now a tested
+  non-difference rather than an eyeballed one — a much stronger sentence, and it
+  is the core deployment recommendation.
+- **FER per-channel and per-tensor agree on only 29.7% of samples.** They are not
+  near-variants; per-tensor quantization changes what the model does.
+
+Method note: exact binomial below 25 discordant pairs, chi-square with continuity
+correction above. The 4-class SER view is tested separately because that is the
+deployed protocol the paper publishes, and it is where the withdrawn claim lived.
+
+Two bugs were fixed to get here: `mcnemar_compare.py` wrote its markdown with
+Windows' default cp1252 codec and crashed on `Δ` (now explicit UTF-8), and
+`quant_02`'s prediction caches carry no labels file, so
+`quant/quant_07_stage_mcnemar_input.py` reconstructs labels **in the order the
+predictions were computed** and stages both the raw and deployed-4-class views.
+Every staged accuracy was checked against the A1 table before testing.
 
 ---
 

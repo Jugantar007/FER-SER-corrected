@@ -275,12 +275,15 @@ SER, n=240, 4-class summation (the deployed protocol — publish this row set):
 The paper's central claim survives on both models: **dynamic range preserves
 baseline behaviour** (−0.05 pts FER, +0.42 pts SER) **while full INT8 collapses**.
 
-**A6 — and the per-channel/per-tensor ordering is not universal.** For FER,
-per-channel is dramatically better than per-tensor (61.24% vs 33.21%, a 28-point
-gap). For SER the ordering **reverses**: per-tensor beats per-channel (62.50% vs
-59.58%). This is exactly why the README insists on stating which variant the
-reported "full INT8" corresponds to — the two models disagree, so the convention
-cannot be left implicit.
+**A6 — per-channel wins decisively on FER; on SER the two are indistinguishable.**
+For FER, per-channel beats per-tensor by 28 points (61.24% vs 33.21%). For SER the
+point estimates run the other way (62.50% vs 59.58%), but **that difference is not
+statistically significant** — see the McNemar section below. The earlier reading of
+this as a "reversal" was wrong: it rested on 9 discordant samples out of 240.
+
+The reportable claim is that per-channel is essential on FER and makes no
+demonstrable difference on SER — which still means the paper must say which
+variant its "full INT8" numbers use, because on FER the choice is worth 28 points.
 
 ### A2 — layer-wise error profiling
 
@@ -331,6 +334,47 @@ stability: seed alone moves accuracy by up to 7.08 points at fixed n, and SD doe
 not shrink monotonically with n. That is enough to produce "4/8 versus 7/8" on an
 eight-sample set, so much of the paper's unexplained variation was calibration
 noise. Replace that sentence with mean ± SD and the error-bar figure.
+
+### Paired significance tests (McNemar)
+
+Every format is evaluated on the **same** test samples, so the comparison is
+paired. Marginal confidence intervals discard that pairing and are badly
+underpowered — two formats can differ while their marginal CIs overlap heavily.
+`mcnemar_compare.py` runs McNemar's test on the discordant samples, Holm-corrected
+across the 10 within-model comparisons, with paired bootstrap CIs on the
+*difference*.
+
+```bash
+python quant/quant_07_stage_mcnemar_input.py       # rename caches + rebuild labels
+python mcnemar_compare.py --preds-dir artifacts/mcnemar_input/raw --model both \
+    --out-dir outputs/quant
+python mcnemar_compare.py --preds-dir artifacts/mcnemar_input/deployed4 --model ser \
+    --out-dir outputs/quant/deployed4     # the published 4-class summation view
+```
+
+Key pairs:
+
+| model / view | comparison | Δ pts | b | c | n disc | p (Holm) | verdict |
+|---|---|---|---|---|---|---|---|
+| FER | fp32 vs dynrange | +0.05 | 44 | 43 | 87 | 1.0 | **no difference** |
+| FER | fp32 vs int8 per-ch | +21.25 | — | — | — | 2.2e−56 | significant |
+| FER | per-ch vs per-tensor | +28.03 | 847 | 301 | 1148 | 2.3e−57 | significant |
+| SER 4-class | fp32 vs dynrange | −0.42 | 3 | 4 | 7 | 1.0 | **no difference** |
+| SER 4-class | fp32 vs int8 per-ch | +11.25 | — | — | — | 1.7e−04 | significant |
+| SER 4-class | per-ch vs per-tensor | −2.92 | 1 | 8 | 9 | **0.156** | **not significant** |
+
+Two conclusions the paper should take verbatim:
+
+1. **Dynamic range is statistically indistinguishable from FP32** on both models
+   (p = 1.0). "Preserves baseline behaviour" is now a tested non-difference, not
+   an eyeballed one.
+2. **The SER per-channel/per-tensor difference does not survive correction.**
+   Uncorrected it is p = 0.039, which is why it looked real; Holm across 10
+   comparisons gives 0.156. With only 9 discordant samples the test has almost no
+   power. Do not claim a reversal.
+
+Note the FER per-channel/per-tensor agreement rate is **0.297** — the two builds
+disagree on 70% of samples. They are not minor variants of each other.
 
 ### Still outstanding
 
