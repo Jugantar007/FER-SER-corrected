@@ -15,3 +15,10 @@ Thumbs.db
 emotion_data/
 *.zip
 !outputs/**/*.zip
+
+# Group A quantization study
+# Generated models/caches/logs. Results and figures are copied into outputs/
+# by hand when they are ready to cite -- see GROUP_A.md.
+artifacts/
+# Machine-specific dataset locations
+paths.local.json

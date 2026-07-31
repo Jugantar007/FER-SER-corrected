@@ -1,0 +1,28 @@
+# Group A quantization study.
+# Validated against the versions in the trailing comments on an RTX 4060
+# workstation (Python 3.10, Windows 11).
+
+tensorflow>=2.15          # 2.21.0 -- provides tf.lite + QuantizationDebugger
+ai-edge-litert            # 2.1.4  -- faster LiteRT interpreter; optional
+numpy>=1.24               # 2.2.6
+scikit-learn>=1.3         # 1.7.2
+pandas>=2.0               # 2.3.3
+matplotlib>=3.7           # 3.10.9
+h5py                      # weight transfer in quant_06
+
+# FER chain: PyTorch -> ONNX -> TensorFlow -> TFLite
+torch>=2.1                # 2.6.0+cu124
+torchvision               # matched to torch
+onnx>=1.15                # 1.21.0
+onnxruntime>=1.16         # 1.23.2
+onnx2tf>=1.19             # 1.28.8 -- the most fragile link; see GROUP_A.md
+pillow                    # 12.2.0
+
+# SER features (rebuilding the training split for calibration)
+librosa>=0.10             # 0.11.0
+opencv-python             # 4.13.0
+
+# A5 only (quant_06_qat_ser.py). tfmot targets Keras 2, so the script sets
+# TF_USE_LEGACY_KERAS=1 and needs tf-keras installed alongside TensorFlow.
+tensorflow-model-optimization
+tf-keras
