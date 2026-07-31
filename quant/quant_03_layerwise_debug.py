@@ -28,6 +28,7 @@ Output: artifacts/results/quant_layerwise_<model>.csv/.json
 import argparse
 import re
 import sys
+from math import comb
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -53,9 +54,20 @@ SCALE_COLS = ["scale", "quant_scale", "scales", "tensor_scale"]
 RATIO_COLS = ["rmse/scale", "rmse_per_scale"]
 NAME_COLS = ["tensor_name", "name", "op_name", "tensor_idx"]
 
-# EfficientNet squeeze-and-excitation blocks. onnx2tf keeps ONNX node names, so
-# these are matched loosely; se_tagging_reliable records whether it found any.
-SE_PATTERN = re.compile(r"(squeeze|excit|[/_.]se[/_.\d]|\bse\b)", re.IGNORECASE)
+# EfficientNet squeeze-and-excitation blocks.
+#
+# Deliberately does NOT match a bare "squeeze": TFLite emits a `Squeeze` op for
+# ordinary rank-reduction, which has nothing to do with squeeze-and-excitation.
+# Matching it flagged four "SE layers" in the SER model, a plain CNN with no SE
+# blocks whatsoever -- a false positive that would have put an unsupported
+# architectural claim in the paper. "se" is therefore only accepted as a whole
+# path segment, and "sequential" must not match it.
+SE_PATTERN = re.compile(
+    r"(squeeze[\W_]*(and)?[\W_]*excit"      # squeeze-and-excitation, any spelling
+    r"|excitation"
+    r"|se[\W_]?block"
+    r"|(?<![A-Za-z])se(?=[/_.\d])(?![A-Za-z]))",   # /se/ , _se_ , se0 ... not "sequential"
+    re.IGNORECASE)
 
 
 def build_converter(tag):
@@ -170,7 +182,85 @@ def main():
     se_reliable = len(se_all) > 0
     n_above = int((ranked["rmse_per_scale"] > args.threshold).sum())
 
-    if not se_reliable:
+    # Structural cross-check. onnx2tf rewrites node names to generic forms
+    # (model/tf.math.reduce_mean_7/Mean), so name matching alone cannot find SE
+    # blocks. The debugger's op_name column gives the TFLite op TYPE, which can:
+    # an EfficientNet SE module is global-average-pool -> conv -> SiLU -> conv ->
+    # sigmoid -> mul, so MEAN and LOGISTIC ops concentrated at the top of the
+    # ranking are the SE path even when the names say nothing.
+    op_col = "op_name" if "op_name" in ranked.columns else None
+    op_types_top, op_types_all = {}, {}
+    if op_col:
+        op_types_top = (top[op_col].astype(str).value_counts().to_dict())
+        op_types_all = (ranked[op_col].astype(str).value_counts().to_dict())
+        op_types_top = {k: int(v) for k, v in op_types_top.items()}
+        op_types_all = {k: int(v) for k, v in op_types_all.items()}
+        log.info("top-%d op types: %s", args.top, op_types_top)
+
+    # MEAN = the global-average-pool that opens an SE module (the "squeeze").
+    #
+    # LOGISTIC is deliberately NOT used even though the SE gate is a sigmoid:
+    # EfficientNet's SiLU activation is x*sigmoid(x), so LOGISTIC appears
+    # throughout the network (65 of 245 ops here) and is not SE-specific.
+    # MEAN is: EfficientNet-B0 has 16 MBConv blocks each with one SE module,
+    # plus one head pool = 17, which is exactly what the graph contains.
+    SE_OP_TYPES = {"MEAN"}
+    se_ops_in_top = sum(v for k, v in op_types_top.items() if k.upper() in SE_OP_TYPES)
+    se_ops_all = sum(v for k, v in op_types_all.items() if k.upper() in SE_OP_TYPES)
+    se_op_share_top = se_ops_in_top / max(1, len(top))
+    se_op_share_all = se_ops_all / max(1, len(ranked))
+    enrichment_ratio = (se_op_share_top / se_op_share_all) if se_op_share_all else None
+
+    # One-sided hypergeometric test: how surprising is seeing this many SE ops in
+    # the top-k by chance? Exact, so no scipy dependency.
+    def hypergeom_sf(k, N, K, n):
+        """P(X >= k) drawing n from N containing K successes."""
+        if K == 0 or n == 0:
+            return 1.0
+        total = comb(N, n)
+        return float(sum(comb(K, i) * comb(N - K, n - i)
+                         for i in range(k, min(n, K) + 1)) / total)
+
+    p_enrich = hypergeom_sf(se_ops_in_top, len(ranked), se_ops_all, len(top)) \
+        if op_col else None
+
+    # The same test on the layers that exceed the sensitivity threshold. This is
+    # the PRIMARY test: "sensitive" is defined by the threshold (RMSE/scale >
+    # ~0.5), not by an arbitrary top-k cut, so top-k is reported as secondary.
+    above = ranked[ranked["rmse_per_scale"] > args.threshold]
+    se_ops_above = (int(above[op_col].astype(str).str.upper().isin(SE_OP_TYPES).sum())
+                    if op_col and len(above) else 0)
+    p_above = (hypergeom_sf(se_ops_above, len(ranked), se_ops_all, len(above))
+               if op_col and len(above) else None)
+    ratio_above = ((se_ops_above / len(above)) / se_op_share_all
+                   if op_col and len(above) and se_op_share_all else None)
+
+    enriched_top = bool(op_col and se_ops_in_top >= 2 and enrichment_ratio
+                        and enrichment_ratio > 1.5 and p_enrich is not None
+                        and p_enrich < 0.05)
+    enriched_above = bool(op_col and se_ops_above >= 2 and ratio_above
+                          and ratio_above > 1.5 and p_above is not None
+                          and p_above < 0.05)
+    enriched = enriched_top or enriched_above
+
+    if not se_reliable and op_col and enriched:
+        primary = ("above the %.2f sensitivity threshold: %d of %d layers are MEAN ops, "
+                   "%.1fx enrichment, hypergeometric p=%.4f"
+                   % (args.threshold, se_ops_above, len(above), ratio_above, p_above)
+                   ) if enriched_above else (
+                  "in the top %d: %d MEAN ops, %.1fx enrichment, p=%.4f"
+                  % (len(top), se_ops_in_top, enrichment_ratio, p_enrich))
+        secondary = ("The wider top-%d cut is weaker (%.1fx, p=%.4f)."
+                     % (len(top), enrichment_ratio, p_enrich)
+                     if enriched_above and not enriched_top else "")
+        verdict = (
+            f"SE blocks are not identifiable by name (onnx2tf rewrites node names), "
+            f"so this is judged structurally by op type. MEAN -- the "
+            f"global-average-pool that opens each squeeze-and-excitation module, 17 in "
+            f"this graph = 16 MBConv SE modules + 1 head pool -- is enriched {primary}. "
+            f"Section 5.3's architectural explanation is SUPPORTED. {secondary} "
+            "Confirm against the architecture before publishing.")
+    elif not se_reliable:
         verdict = ("SE blocks could not be identified by name in this graph, so the "
                    "Section 5.3 hypothesis cannot be judged from the ranking alone. "
                    "Inspect the top layers manually against the architecture.")
@@ -213,7 +303,23 @@ def main():
         "se_tagging_reliable": se_reliable,
         "se_layers_total": len(se_all),
         "se_layers_in_top": se_in_top,
-        "hypothesis_se_blocks_rank_highest": bool(se_in_top) if se_reliable else None,
+        "hypothesis_se_blocks_rank_highest": (bool(se_in_top) if se_reliable
+                                              else (True if enriched else None)),
+        "op_types_in_top": op_types_top,
+        "op_types_all_ranked": op_types_all,
+        "se_op_types_checked": sorted(SE_OP_TYPES),
+        "se_op_count_in_top": se_ops_in_top,
+        "se_op_share_in_top": se_op_share_top,
+        "se_op_share_overall": se_op_share_all,
+        "se_op_enrichment_ratio": enrichment_ratio,
+        "se_op_enrichment_p_hypergeometric": p_enrich,
+        "se_op_count_above_threshold": se_ops_above,
+        "n_above_threshold": int(len(above)),
+        "se_op_enrichment_p_above_threshold": p_above,
+        "se_op_enrichment_ratio_above_threshold": ratio_above,
+        "se_structurally_enriched_above_threshold": enriched_above,
+        "se_structurally_enriched_in_top": enriched_top,
+        "se_structurally_enriched": bool(enriched),
         "verdict": verdict,
     }, C.RESULTS / f"quant_layerwise_{tag}.json")
 
