@@ -38,7 +38,8 @@ from common import (get_logger, save_json, load_json, full_metrics, bootstrap_ci
                     agreement_metrics, run_tflite, load_keras_compat,
                     keras_saved_model_dir, four_class_summation, labels_8_to_4)
 from quant_01_convert import fer_representative_dataset, ser_representative_dataset
-from quant_02_evaluate_formats import load_fer_test, load_ser_test, check_frozen
+from quant_02_evaluate_formats import (load_fer_test, load_ser_test, check_frozen,
+                                       cached_predictions)
 
 log = get_logger("quant_05_selective")
 
@@ -78,7 +79,10 @@ def main():
     rep_fn = fer_representative_dataset if tag == "fer" else ser_representative_dataset
     y4 = labels_8_to_4(y) if tag == "ser" else None
 
-    base_prob = run_tflite(C.MODELS / f"{tag}_fp32.tflite", X, "fp32")
+    # Reuse quant_02's per-format prediction cache: the FP32 and reference-format
+    # predictions over this exact test set were already computed for A1, and on
+    # FER each one costs ~70 minutes to recompute.
+    base_prob = cached_predictions(tag, "fp32", X)
     base_acc = float((base_prob.argmax(1) == y).mean())
     log.info("FP32 baseline accuracy: %.2f%%", base_acc * 100)
 
@@ -86,7 +90,7 @@ def main():
     for fmt in ("int8_full_perchannel", "int8_full_pertensor", "dynrange"):
         p = C.MODELS / f"{tag}_{fmt}.tflite"
         if p.exists():
-            P = run_tflite(p, X, fmt)
+            P = cached_predictions(tag, fmt, X)
             ref[fmt] = {"accuracy": float((P.argmax(1) == y).mean()),
                         "size_mb": round(p.stat().st_size / 1e6, 3),
                         **agreement_metrics(base_prob, P)}
@@ -115,7 +119,8 @@ def main():
 
         out = C.MODELS / f"{tag}_int8_selective_k{k}.tflite"
         out.write_bytes(blob)
-        P = run_tflite(out, X, f"selective k={k}")
+        # Cached too, so an interrupted sweep resumes instead of restarting.
+        P = cached_predictions(tag, f"int8_selective_k{k}", X)
         pred = P.argmax(1)
         m = full_metrics(y, pred, class_names)
         m.update(bootstrap_ci(y, pred))
