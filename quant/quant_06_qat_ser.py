@@ -88,45 +88,46 @@ def build_ser_architecture(n_classes=8):
 
 
 def load_baseline_weights(model):
-    """Transfer the corrected checkpoint's weights into the Keras-2 rebuild."""
+    """Transfer the corrected checkpoint's weights into the Keras-2 rebuild.
+
+    A `.keras` archive stores weights in model.weights.h5 as
+    `layers/<layer_name>/vars/<i>`, where i is already the order Keras expects
+    (conv: kernel, bias; batchnorm: gamma, beta, moving_mean, moving_variance).
+    Layer names match because the rebuild declares the layers in the same order.
+    """
     import zipfile
-    import json as _json
     import h5py
 
     path = C.MODELS / "ser_baseline.keras"
+    tmp = C.CACHE / "ser_baseline_weights.h5"
     with zipfile.ZipFile(path) as z:
-        names = z.namelist()
-        wname = next(n for n in names if n.endswith(".h5") or n.endswith(".weights.h5"))
-        tmp = C.CACHE / "ser_baseline_weights.h5"
+        wname = next(n for n in z.namelist() if n.endswith(".weights.h5")
+                     or n.endswith(".h5"))
         tmp.write_bytes(z.read(wname))
 
-    # The .keras weights file stores layers under /_layer_checkpoint_dependencies
-    # (Keras 3) keyed by layer name; match on the ordered list of weighted layers.
+    transferred, missing = 0, []
     with h5py.File(tmp, "r") as f:
-        root = f["_layer_checkpoint_dependencies"] if \
-            "_layer_checkpoint_dependencies" in f else f
-
-        def collect(g, out):
-            for k in g:
-                item = g[k]
-                if isinstance(item, h5py.Dataset):
-                    out.append((item.name, np.array(item)))
-                else:
-                    collect(item, out)
-            return out
-
-        weighted = [ly for ly in model.layers if ly.weights]
-        for ly in weighted:
-            key = ly.name
-            if key not in root:
-                log.warning("no stored weights for layer %s", key)
+        root = f["layers"] if "layers" in f else f
+        for ly in model.layers:
+            if not ly.weights:
                 continue
-            arrs = collect(root[key], [])
-            # order vars as Keras expects: kernel, bias / gamma, beta, mean, var
-            order = {"kernel": 0, "gamma": 0, "bias": 1, "beta": 1,
-                     "moving_mean": 2, "moving_variance": 3}
-            arrs.sort(key=lambda t: order.get(t[0].rsplit("/", 1)[-1], 9))
-            ly.set_weights([a for _, a in arrs])
+            if ly.name not in root or "vars" not in root[ly.name]:
+                missing.append(ly.name)
+                continue
+            g = root[ly.name]["vars"]
+            arrays = [np.array(g[k]) for k in sorted(g.keys(), key=int)]
+            expected = [tuple(w.shape) for w in ly.weights]
+            got = [a.shape for a in arrays]
+            if got != expected:
+                raise ValueError(
+                    f"weight shape mismatch for {ly.name}: stored {got}, "
+                    f"model expects {expected}")
+            ly.set_weights(arrays)
+            transferred += 1
+
+    if missing:
+        raise ValueError(f"no stored weights found for layers: {missing}")
+    log.info("transferred weights for %d layers", transferred)
     return model
 
 

@@ -42,7 +42,7 @@ splits. It is the bridge, and it verifies the wiring rather than assuming it.
 | A2 | `quant_03_layerwise_debug.py` | implemented, run |
 | A3 | `quant_05_selective_quant.py` | implemented, run |
 | A4 | `quant_04_calibration_sensitivity.py` | implemented, variable corrected |
-| A5 | `quant_06_qat_ser.py` | implemented (SER first, per the recommendation) |
+| A5 | `quant_06_qat_ser.py` | implemented, **not run** — needs an isolated env, see below |
 | A6 | both `int8_full_*` variants in `quant_01`/`quant_02` | implemented, run |
 
 ---
@@ -158,6 +158,24 @@ recovers full INT8 well enough to justify the 1–2 week FER rebuild (option 1).
 Because `tfmot` targets Keras 2, the script sets `TF_USE_LEGACY_KERAS=1` and
 rebuilds the architecture layer-for-layer, transferring the checkpoint's weights
 and **verifying they reproduce the published baseline before training starts**.
+
+> **A5 has not been run, deliberately.** `tensorflow-model-optimization` 0.8.1
+> pins `absl-py~=1.2`, so installing it into the workstation environment would
+> downgrade absl-py from 2.x and put the working TensorFlow 2.21 install — the
+> one every other Group A item depends on — at risk. Run A5 in an isolated
+> environment instead:
+>
+> ```bash
+> uv venv .venv-qat --python 3.10
+> .venv-qat/Scripts/pip install -r requirements-quant.txt
+> .venv-qat/Scripts/python quant/quant_06_qat_ser.py --epochs 15
+> ```
+>
+> Everything in the script up to the `tfmot` call has been executed and verified:
+> the Keras-2 rebuild plus `load_baseline_weights()` reproduces the published
+> baseline **exactly** (60.83% 8-class / 70.83% 4-class). Only the QAT training
+> run itself is outstanding. The baseline check runs before training, so the
+> script fails loudly rather than fine-tuning from wrong weights.
 
 **Frozen test sets are enforced, not assumed.** `config.EXPECTED_N_TEST` holds
 1948 (FER) and 240 (SER); `check_frozen()` aborts on any mismatch, per rule 1.
