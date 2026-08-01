@@ -1,0 +1,299 @@
+{
+  "model": "fer",
+  "fp32_baseline_accuracy": 0.8249486652977412,
+  "fp32_baseline_accuracy_4class": null,
+  "counts": [
+    50,
+    200,
+    500
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "per_channel": true,
+  "calibration_source": "TRAINING split only (never val/test)",
+  "dropped_variable_note": "The originally planned third variable (FER2013-only vs mixed FER2013+ExpW calibration sources) was dropped: this model never saw FER2013 or ExpW, so that contrast would measure domain shift rather than calibration sensitivity. A 3-seed sweep replaces it.",
+  "runs": [
+    {
+      "n_samples": 50,
+      "balanced": true,
+      "seed": 0,
+      "accuracy": 0.6822381930184805,
+      "accuracy_delta_points": -14.27,
+      "top1_agreement": 0.6873716632443532,
+      "mean_abs_prob_diff": 0.1496912283326483,
+      "max_abs_prob_diff": 0.9960167030347779,
+      "mean_kl_divergence": 0.5479077252314295
+    },
+    {
+      "n_samples": 50,
+      "balanced": true,
+      "seed": 1,
+      "accuracy": 0.6745379876796714,
+      "accuracy_delta_points": -15.04,
+      "top1_agreement": 0.7063655030800822,
+      "mean_abs_prob_diff": 0.1473261994370285,
+      "max_abs_prob_diff": 0.9865424157638832,
+      "mean_kl_divergence": 0.4711012410626209
+    },
+    {
+      "n_samples": 50,
+      "balanced": true,
+      "seed": 2,
+      "accuracy": 0.7402464065708418,
+      "accuracy_delta_points": -8.47,
+      "top1_agreement": 0.7972279260780287,
+      "mean_abs_prob_diff": 0.10744924033568187,
+      "max_abs_prob_diff": 0.9829317946934809,
+      "mean_kl_divergence": 0.32745140009641094
+    },
+    {
+      "n_samples": 50,
+      "balanced": false,
+      "seed": 0,
+      "accuracy": 0.728952772073922,
+      "accuracy_delta_points": -9.6,
+      "top1_agreement": 0.7669404517453798,
+      "mean_abs_prob_diff": 0.11111305647325827,
+      "max_abs_prob_diff": 0.9937510682856368,
+      "mean_kl_divergence": 0.3762451019808494
+    },
+    {
+      "n_samples": 50,
+      "balanced": false,
+      "seed": 1,
+      "accuracy": 0.6206365503080082,
+      "accuracy_delta_points": -20.43,
+      "top1_agreement": 0.6329568788501027,
+      "mean_abs_prob_diff": 0.17873808846776498,
+      "max_abs_prob_diff": 0.9956562095790147,
+      "mean_kl_divergence": 0.6391738421463536
+    },
+    {
+      "n_samples": 50,
+      "balanced": false,
+      "seed": 2,
+      "accuracy": 0.7469199178644764,
+      "accuracy_delta_points": -7.8,
+      "top1_agreement": 0.7910677618069816,
+      "mean_abs_prob_diff": 0.11038177799793647,
+      "max_abs_prob_diff": 0.9898330224723715,
+      "mean_kl_divergence": 0.3169272159633703
+    },
+    {
+      "n_samples": 200,
+      "balanced": true,
+      "seed": 0,
+      "accuracy": 0.7197125256673511,
+      "accuracy_delta_points": -10.52,
+      "top1_agreement": 0.7243326488706365,
+      "mean_abs_prob_diff": 0.12922131644788343,
+      "max_abs_prob_diff": 0.998983354735917,
+      "mean_kl_divergence": 0.44711898140856166
+    },
+    {
+      "n_samples": 200,
+      "balanced": true,
+      "seed": 1,
+      "accuracy": 0.5728952772073922,
+      "accuracy_delta_points": -25.21,
+      "top1_agreement": 0.5728952772073922,
+      "mean_abs_prob_diff": 0.19670474452518655,
+      "max_abs_prob_diff": 0.9971754252071672,
+      "mean_kl_divergence": 0.7877435232565675
+    },
+    {
+      "n_samples": 200,
+      "balanced": true,
+      "seed": 2,
+      "accuracy": 0.6529774127310062,
+      "accuracy_delta_points": -17.2,
+      "top1_agreement": 0.6514373716632443,
+      "mean_abs_prob_diff": 0.16790374326764546,
+      "max_abs_prob_diff": 0.9958303935046408,
+      "mean_kl_divergence": 0.59340852351873
+    },
+    {
+      "n_samples": 200,
+      "balanced": false,
+      "seed": 0,
+      "accuracy": 0.7186858316221766,
+      "accuracy_delta_points": -10.63,
+      "top1_agreement": 0.7618069815195072,
+      "mean_abs_prob_diff": 0.11651339479876915,
+      "max_abs_prob_diff": 0.9988715803339961,
+      "mean_kl_divergence": 0.38438455271869565
+    },
+    {
+      "n_samples": 200,
+      "balanced": false,
+      "seed": 1,
+      "accuracy": 0.6160164271047228,
+      "accuracy_delta_points": -20.89,
+      "top1_agreement": 0.6175564681724846,
+      "mean_abs_prob_diff": 0.19618785520913307,
+      "max_abs_prob_diff": 0.9951633421748295,
+      "mean_kl_divergence": 0.6231389729530388
+    },
+    {
+      "n_samples": 200,
+      "balanced": false,
+      "seed": 2,
+      "accuracy": 0.7032854209445585,
+      "accuracy_delta_points": -12.17,
+      "top1_agreement": 0.731006160164271,
+      "mean_abs_prob_diff": 0.14292235328541594,
+      "max_abs_prob_diff": 0.9931740055671174,
+      "mean_kl_divergence": 0.4129651379805346
+    },
+    {
+      "n_samples": 500,
+      "balanced": true,
+      "seed": 0,
+      "accuracy": 0.6509240246406571,
+      "accuracy_delta_points": -17.4,
+      "top1_agreement": 0.662217659137577,
+      "mean_abs_prob_diff": 0.16650889104117764,
+      "max_abs_prob_diff": 0.9966701298655624,
+      "mean_kl_divergence": 0.6317584236243898
+    },
+    {
+      "n_samples": 500,
+      "balanced": true,
+      "seed": 1,
+      "accuracy": 0.6570841889117043,
+      "accuracy_delta_points": -16.79,
+      "top1_agreement": 0.6806981519507187,
+      "mean_abs_prob_diff": 0.16459542123752247,
+      "max_abs_prob_diff": 0.9944133562442019,
+      "mean_kl_divergence": 0.5274181773347465
+    },
+    {
+      "n_samples": 500,
+      "balanced": true,
+      "seed": 2,
+      "accuracy": 0.6971252566735113,
+      "accuracy_delta_points": -12.78,
+      "top1_agreement": 0.7186858316221766,
+      "mean_abs_prob_diff": 0.13799695571363263,
+      "max_abs_prob_diff": 0.9946019515841532,
+      "mean_kl_divergence": 0.48510492463940796
+    },
+    {
+      "n_samples": 500,
+      "balanced": false,
+      "seed": 0,
+      "accuracy": 0.648870636550308,
+      "accuracy_delta_points": -17.61,
+      "top1_agreement": 0.6550308008213552,
+      "mean_abs_prob_diff": 0.17150000162935142,
+      "max_abs_prob_diff": 0.9957969187783592,
+      "mean_kl_divergence": 0.6098395130196297
+    },
+    {
+      "n_samples": 500,
+      "balanced": false,
+      "seed": 1,
+      "accuracy": 0.7243326488706365,
+      "accuracy_delta_points": -10.06,
+      "top1_agreement": 0.7705338809034907,
+      "mean_abs_prob_diff": 0.1124301499964545,
+      "max_abs_prob_diff": 0.9862371819927184,
+      "mean_kl_divergence": 0.3506200055918379
+    },
+    {
+      "n_samples": 500,
+      "balanced": false,
+      "seed": 2,
+      "accuracy": 0.6555441478439425,
+      "accuracy_delta_points": -16.94,
+      "top1_agreement": 0.6704312114989733,
+      "mean_abs_prob_diff": 0.15582173095234436,
+      "max_abs_prob_diff": 0.9961679546126605,
+      "mean_kl_divergence": 0.5519347684208511
+    }
+  ],
+  "summary": {
+    "n50_balanced": {
+      "accuracy_mean": 0.6990075290896646,
+      "accuracy_std": 0.02932924652396894,
+      "accuracy_min": 0.6745379876796714,
+      "accuracy_max": 0.7402464065708418,
+      "accuracy_spread_points": 6.570841889117041,
+      "agreement_mean": 0.7303216974674881,
+      "agreement_std": 0.047941103158568664,
+      "n_runs": 3
+    },
+    "n50_natural": {
+      "accuracy_mean": 0.6988364134154689,
+      "accuracy_std": 0.055780035403860805,
+      "accuracy_min": 0.6206365503080082,
+      "accuracy_max": 0.7469199178644764,
+      "accuracy_spread_points": 12.628336755646819,
+      "agreement_mean": 0.7303216974674881,
+      "agreement_std": 0.06954836543010641,
+      "n_runs": 3
+    },
+    "n200_balanced": {
+      "accuracy_mean": 0.6485284052019166,
+      "accuracy_std": 0.060020392991792106,
+      "accuracy_min": 0.5728952772073922,
+      "accuracy_max": 0.7197125256673511,
+      "accuracy_spread_points": 14.681724845995891,
+      "agreement_mean": 0.649555099247091,
+      "agreement_std": 0.06183837317908872,
+      "n_runs": 3
+    },
+    "n200_natural": {
+      "accuracy_mean": 0.6793292265571527,
+      "accuracy_std": 0.04520823002608795,
+      "accuracy_min": 0.6160164271047228,
+      "accuracy_max": 0.7186858316221766,
+      "accuracy_spread_points": 10.266940451745377,
+      "agreement_mean": 0.7034565366187543,
+      "agreement_std": 0.06202842879596773,
+      "n_runs": 3
+    },
+    "n500_balanced": {
+      "accuracy_mean": 0.6683778234086243,
+      "accuracy_std": 0.0204824818719302,
+      "accuracy_min": 0.6509240246406571,
+      "accuracy_max": 0.6971252566735113,
+      "accuracy_spread_points": 4.62012320328542,
+      "agreement_mean": 0.6872005475701575,
+      "agreement_std": 0.02350708386184037,
+      "n_runs": 3
+    },
+    "n500_natural": {
+      "accuracy_mean": 0.6762491444216291,
+      "accuracy_std": 0.034109153105091515,
+      "accuracy_min": 0.648870636550308,
+      "accuracy_max": 0.7243326488706365,
+      "accuracy_spread_points": 7.546201232032857,
+      "agreement_mean": 0.6986652977412731,
+      "agreement_std": 0.05120620467982546,
+      "n_runs": 3
+    }
+  },
+  "overall_spread_points": 17.402464065708422,
+  "interpretation": "Spread across seeds at fixed n quantifies how much of the originally reported 4/8-to-7/8 variation was calibration noise rather than a property of the quantization scheme.",
+  "_environment": {
+    "timestamp": "2026-08-02T03:59:05",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}

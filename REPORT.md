@@ -338,6 +338,55 @@ error-bar figure (`quant_calibration_ser.png`) instead of an anecdote — and
 should report which seed policy it used, because the choice is worth several
 points.
 
+### A4 — calibration sensitivity, FER
+
+Same 18 configurations, each evaluated on the frozen 1948-image test set. FP32
+baseline 82.49% — identical to the corrected notebook's published figure.
+
+| config | mean % | SD | min % | max % | seed spread |
+|---|---|---|---|---|---|
+| n50 balanced | 69.90 | 2.93 | 67.45 | 74.02 | 6.57 |
+| n50 natural | 69.88 | 5.58 | 62.06 | 74.69 | 12.63 |
+| n200 balanced | 64.85 | 6.00 | 57.29 | 71.97 | **14.68** |
+| n200 natural | 67.93 | 4.52 | 61.60 | 71.87 | 10.27 |
+| n500 balanced | 66.84 | 2.05 | 65.09 | 69.71 | 4.62 |
+| n500 natural | 67.62 | 3.41 | 64.89 | 72.43 | 7.55 |
+
+**Overall: mean 67.84%, SD 4.66, range 57.29–74.69 — a spread of 17.40 points.**
+
+The FER picture is not the SER picture, and the difference matters:
+
+1. **Calibration size is not a lever here.** Pooled means run 69.89 / 66.39 /
+   67.23 for n = 50 / 200 / 500 — no trend, and every pairwise gap is inside one
+   standard deviation. SER's clean "more data helps the mean" result does not
+   generalise to this model.
+2. **Class balance does nothing.** 67.20% balanced versus 68.48% natural pooled
+   over nine runs each, against an SD of ~4.6. As close to a null as this study
+   produces.
+3. **Seed dominates everything else.** Spread from the seed alone, every other
+   variable fixed, reaches 14.68 points at n=200 balanced. The n=500 balanced
+   block is the tightest at 4.62, but the n=500 natural block is 7.55, so
+   stability at n=500 is not established — with three seeds per block an SD is
+   barely an estimate, and the apparent shrinkage is within what luck produces.
+
+**Consequence for A1.** A1's committed full-INT8 per-channel figure of 61.24%
+(−21.25 pts) used n=200 balanced, seed 42. Only 1 of these 18 draws falls below
+it. It is a legitimate measurement, but it sits near the pessimistic tail of the
+calibration distribution: the *expected* penalty over 18 draws is **−14.65 pts**
+(range −7.80 to −25.20). The paper should not present −21.25 as "the" cost of
+full INT8 on FER without saying it is one calibration draw. Reporting mean ± SD
+over seeds, with `quant_calibration_fer.png` as the error-bar figure, is the
+defensible form. This does not change A1's qualitative conclusion — full INT8
+collapses on FER under every draw, the best of 18 still being 7.8 points below
+FP32 — only the number attached to it.
+
+Two notes on reading the table. The seed labels carry no meaning across blocks:
+for a fixed seed the calibration subsets at different n are disjoint (measured:
+0/48, 0/48, 3/48 overlap between n50-balanced and n200-balanced for seeds 0/1/2),
+so a seed that looks consistently bad is coincidence, not a property of the seed.
+And in the balanced condition the code takes `n // 4` per class, so the **"n=50"
+rows use 48 images**, not 50; n=200 and n=500 divide evenly and are exact.
+
 ### 7.5 Paired significance tests (McNemar) — and a correction
 
 Every format is evaluated on the **same** held-out samples, so the comparison is
@@ -406,7 +455,13 @@ Quantized EfficientNet-B0 falls back to slow reference kernels on x86:
 | dynrange | 8243 | 1170 |
 | int8_full_perchannel | 8831 | 1275 |
 
-One FER format over 1948 images therefore costs ~70 minutes. Re-running `onnx2tf`
+One FER format over 1948 images therefore costs ~70 minutes. The A4 sweep
+measured this more directly: 18 configs took 6 h 33 min wall clock at the default
+thread count (`min(8, cpu_count)` = 8), i.e. **~20 min per config including the
+TFLite conversion**, or ~600 ms/image. That is *faster* than the 28-thread row
+above — oversubscribing 28 cores to these kernels hurts — so the ~70 min figure
+is the pessimistic end of the range, and the 21 h estimate for A4-FER in the
+runbook was ~3× too high. Re-running `onnx2tf`
 with graph simplification made no difference (245 ops either way), so this is
 intrinsic to the quantized depthwise/SE kernels, not graph bloat.
 
@@ -423,8 +478,8 @@ so formats can be computed in parallel processes and merged by a final pass.
 |---|---|
 | A1 | **complete**, both models |
 | A2 | **complete**, both models |
-| A3 | **complete** for SER; FER queued (4 builds × 1948 images, several hours) |
-| A4 | **complete** for SER; FER not started — 18 × ~70 min ≈ 21 h |
+| A3 | **complete**, both models |
+| A4 | **complete**, both models |
 | A5 | implemented and partly verified; **not run** (needs isolated venv) |
 | A6 | **complete**, both models — included in A1 |
 
@@ -444,7 +499,12 @@ python quant/quant_02_evaluate_formats.py # A1 + A6
 python quant/quant_03_layerwise_debug.py --model fer --top 15   # A2
 python quant/quant_05_selective_quant.py --model fer --ks 3 5 10 15  # A3
 python quant/quant_04_calibration_sensitivity.py --model ser    # A4
+python quant/quant_04_calibration_sensitivity.py --model fer    # A4, ~6.5 h
 ```
+
+The FER sweep checkpoints each config to
+`artifacts/results/quant_calibration_partial_fer.json`; re-running the same
+command resumes from there, and `--restart` discards it.
 
 See `GROUP_A.md` for the parallel-execution recipe and the A5 isolated-venv
 command.

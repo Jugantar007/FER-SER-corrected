@@ -41,7 +41,7 @@ splits. It is the bridge, and it verifies the wiring rather than assuming it.
 | A1 | `quant_01_convert.py` → `quant_02_evaluate_formats.py` | implemented, run |
 | A2 | `quant_03_layerwise_debug.py` | implemented, run |
 | A3 | `quant_05_selective_quant.py` | implemented, run |
-| A4 | `quant_04_calibration_sensitivity.py` | implemented, variable corrected |
+| A4 | `quant_04_calibration_sensitivity.py` | implemented, variable corrected, run on both models |
 | A5 | `quant_06_qat_ser.py` | implemented, **not run** — needs an isolated env, see below |
 | A6 | both `int8_full_*` variants in `quant_01`/`quant_02` | implemented, run |
 
@@ -89,7 +89,7 @@ quant_01_convert.py                        A1 + A6 builds        (~9 min)
       v
 quant_02_evaluate_formats.py               A1 headline           (see note)
       |
-      +--> quant_04_calibration_sensitivity.py --model {fer,ser}   A4 (overnight for FER)
+      +--> quant_04_calibration_sensitivity.py --model {fer,ser}   A4 (~6.5 h for FER, resumable)
       |
       v
 quant_03_layerwise_debug.py --model fer --top 15                   A2
@@ -335,6 +335,29 @@ not shrink monotonically with n. That is enough to produce "4/8 versus 7/8" on a
 eight-sample set, so much of the paper's unexplained variation was calibration
 noise. Replace that sentence with mean ± SD and the error-bar figure.
 
+### A4 — calibration sensitivity, FER
+
+Same 18 configs on the frozen 1948-image test set, FP32 baseline 82.49%.
+**Overall: mean 67.84%, SD 4.66, spread 17.40 points (57.29–74.69).** Full table
+and interpretation in REPORT.md §7.
+
+FER behaves differently from SER on two of the three variables: sample count is
+*not* a lever (pooled means 69.89 / 66.39 / 67.23 for n = 50 / 200 / 500, no
+trend), and class balance is a null (67.20 balanced vs 68.48 natural over nine
+runs each). What dominates is the seed — up to 14.68 points at fixed n.
+
+The consequence for A1: its 61.24% full-INT8 per-channel figure used n=200
+balanced, seed 42, and only 1 of 18 draws falls below it. The expected penalty
+across draws is **−14.65 pts**, not −21.25. Cite full-INT8 FER as mean ± SD over
+seeds; the qualitative collapse is unaffected (the best of 18 draws is still 7.8
+points below FP32).
+
+Two reading notes. Seed labels do not carry across blocks — for a fixed seed the
+subsets at different n are disjoint (0/48, 0/48, 3/48 overlap measured between
+n50-balanced and n200-balanced), so a seed that looks repeatedly bad is
+coincidence. And the balanced condition takes `n // 4` per class, so **"n=50"
+means 48 images**; n=200 and n=500 are exact.
+
 ### Paired significance tests (McNemar)
 
 Every format is evaluated on the **same** test samples, so the comparison is
@@ -380,9 +403,11 @@ disagree on 70% of samples. They are not minor variants of each other.
 
 | Item | State |
 |---|---|
-| A3 (FER) | running — 4 selective builds × 1948 images, several hours |
-| A4 (FER) | not started; 18 × ~70 min ≈ 21 h, genuinely an overnight-plus job |
 | A5 | implemented, not run — needs the isolated venv described above |
+
+A3 (FER) and A4 (FER) are both complete; see REPORT.md §7. A4-FER took 6 h 33 min
+wall clock, not the 21 h estimated here — ~20 min per config at the default 8
+threads. It checkpoints each config, so an interrupted sweep resumes on re-run.
 
 ## What Group A does not cover
 
