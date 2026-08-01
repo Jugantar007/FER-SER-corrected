@@ -24,8 +24,14 @@ quantization study leaks too.
 
 Output: artifacts/results/quant_calibration_sensitivity_<model>.json
         artifacts/figures/quant_calibration_<model>.png
+
+The FER sweep is an overnight-plus job (18 configs x ~70 min), so each config is
+appended to artifacts/results/quant_calibration_partial_<model>.json as it
+completes. Re-running the script picks up where it stopped; pass --restart to
+discard the partial file and sweep from scratch.
 """
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -70,9 +76,15 @@ def main():
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     ap.add_argument("--pertensor", action="store_true")
     ap.add_argument("--float-io", action="store_true")
+    ap.add_argument("--restart", action="store_true",
+                    help="discard any partial results and sweep from scratch")
     args = ap.parse_args()
     tag = args.model
     int8_io = not args.float_io
+
+    partial_path = C.RESULTS / f"quant_calibration_partial_{tag}.json"
+    if args.restart and partial_path.exists():
+        partial_path.unlink()
 
     X, y, class_names = (load_fer_test() if tag == "fer" else load_ser_test())
     check_frozen(tag, len(y))
@@ -90,13 +102,31 @@ def main():
     base_acc4 = (float((four_class_summation(base_prob).argmax(1) == y4).mean())
                  if tag == "ser" else None)
 
+    # A config is identified by (n, balanced, seed); the settings that change what
+    # those mean are recorded so a stale partial file is never silently reused.
+    settings = {"per_channel": not args.pertensor, "int8_io": int8_io}
     records = []
+    if partial_path.exists():
+        cached = json.loads(partial_path.read_text())
+        if cached.get("settings") == settings:
+            records = cached["runs"]
+            log.info("resuming: %d config(s) already done in %s",
+                     len(records), partial_path.name)
+        else:
+            log.warning("partial file was written with different settings (%s); "
+                        "ignoring it", cached.get("settings"))
+    seen = {(r["n_samples"], r["balanced"], r["seed"]) for r in records}
+
     total = len(args.counts) * 2 * len(args.seeds)
     done = 0
     for n in args.counts:
         for balanced in (True, False):
             for seed in args.seeds:
                 done += 1
+                if (n, balanced, seed) in seen:
+                    log.info("[%d/%d] n=%d bal=%s seed=%d already done, skipping",
+                             done, total, n, balanced, seed)
+                    continue
                 conv = build_converter(tag)
                 conv.optimizations = [tf.lite.Optimize.DEFAULT]
                 conv.representative_dataset = rep_fn(n=n, balanced=balanced, seed=seed)
@@ -122,6 +152,8 @@ def main():
                     rec["accuracy_4class"] = float(
                         (four_class_summation(P).argmax(1) == y4).mean())
                 records.append(rec)
+                partial_path.write_text(json.dumps(
+                    {"model": tag, "settings": settings, "runs": records}, indent=2))
                 log.info("n=%3d balanced=%-5s seed=%d | acc %.2f%% (%+.2f pts) | agree %.3f",
                          n, balanced, seed, acc * 100, (acc - base_acc) * 100,
                          ag["top1_agreement"])
@@ -156,6 +188,8 @@ def main():
                               "originally reported 4/8-to-7/8 variation was calibration "
                               "noise rather than a property of the quantization scheme.")}
     save_json(out, C.RESULTS / f"quant_calibration_sensitivity_{tag}.json")
+    if partial_path.exists():
+        partial_path.unlink()   # only once the real results file is on disk
 
     fig, ax = plt.subplots(figsize=(6.4, 3.6))
     for balanced, marker, colour in ((True, "o", "#4d4d4d"), (False, "s", "#999999")):
