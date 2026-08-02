@@ -423,10 +423,24 @@ actually worse (69.17% vs 70.83%).
 Remaining caveat: early stopping used a validation split with augmentation
 leakage, which affects the stopping point, not the reported test number.
 
-**Do not rebuild FER in Keras for QAT before trying fine-tune-then-PTQ.** That
-path needs no rebuild, no `tfmot` and no architecture surgery, and on SER it
-captured 56% of the total gap. The 1–2 week QAT rebuild was justified by a margin
-that is mostly available for hours of work.
+**That suggested a cheap substitute for FER — and it was tried and failed.**
+`quant_10` fine-tunes the FER checkpoint on the same recipe and post-training
+quantizes it; `quant_11` decomposes the result:
+
+| path | PTQ(baseline) | PTQ(fine-tuned) | raw gain |
+|---|---|---|---|
+| reference kernels | 61.24 | 66.32 | +5.08 (p = 2.1e−4) |
+| **XNNPACK** | 71.82 | 67.25 | **−4.57** (p = 9.2e−5) |
+
+Fine-tuning gives a **better float model** (85.22% vs 82.44%, +2.77, p = 5.7e−5)
+that **quantizes worse** (penalty −17.97 vs −10.63 delegated). On reference
+kernels those cancel positive; on the deployment path they do not. **Do not use
+fine-tune-then-PTQ on FER.** Whether a real QAT rebuild helps is still open.
+
+Incidental but worth knowing: one epoch of fine-tuning with balanced class
+weights beat the published corrected FER checkpoint on its own frozen test set
+(85.22% vs 82.49%, p = 5.7e−5). That is a statement about the checkpoint's
+convergence, not about quantization.
 
 ### Execution path — read this before citing any quantized number
 

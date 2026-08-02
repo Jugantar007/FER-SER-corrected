@@ -640,12 +640,66 @@ a real point estimate and 240 samples has little power to resolve it — "not
 demonstrated" is not "no effect". And it does not touch A5's other result, that
 QAT INT8 is statistically indistinguishable from FP32 (p_Holm = 1.0).
 
-**What it does change is the FER recommendation.** The case for rebuilding
-EfficientNet-B0 in Keras for QAT (1–2 weeks) rested on QAT's margin over PTQ.
-Most of that margin is available from fine-tuning before quantizing, which needs
-no rebuild, no `tfmot`, and no architecture surgery. **Try fine-tune-then-PTQ on
-FER first** — it is hours of work against weeks, and on SER it recovered 56% of
-the total gap.
+**What it changes for FER was tested and did not hold.** The case for rebuilding
+EfficientNet-B0 in Keras for QAT (1–2 weeks) rested on QAT's margin over PTQ, and
+most of that margin came from the fine-tuning rather than the quantization
+awareness — suggesting fine-tune-then-PTQ as a cheap substitute. On FER it is
+**worse than plain PTQ** on the deployment path (−4.57 points, p = 9.2e−5): see
+A5-control-FER. The SER result does not transfer, and the rebuild question stays
+open.
+
+### A5-control-FER — fine-tune-then-PTQ does *not* transfer to FER
+
+A5-control's SER result suggested a cheap alternative to a 1–2 week Keras
+rebuild: fine-tune the existing PyTorch model, then post-training quantize.
+`quant_10` does exactly that — same recipe as `quant_09` (15 epochs, Adam 1e-4,
+batch 32, balanced class weights, early stopping on val loss, restore best),
+architecture and preprocessing untouched, calibration identical to `quant_01`.
+`quant_11` decomposes the result.
+
+**It does not work, and the reference-kernel number would have said it did.**
+
+| path | PTQ(baseline) | PTQ(fine-tuned) | raw gain | p |
+|---|---|---|---|---|
+| reference kernels | 61.24 (penalty −21.20) | 66.32 (penalty −18.89) | **+5.08** | 2.1e−4 |
+| **XNNPACK** | 71.82 (penalty −10.63) | 67.25 (penalty −17.97) | **−4.57** | 9.2e−5 |
+
+The decomposition explains the sign flip. Fine-tuning does two things at once:
+
+1. **It produces a better float model** — 85.22% against 82.44%, **+2.77 points,
+   p = 5.7e−5** on 176 discordant samples. A real improvement, obtained with
+   model selection on the val split and no test leakage.
+2. **It produces a model that quantizes worse.** Its INT8 penalty is −17.97
+   points on the deployment path against the baseline's −10.63 — **7.34 points
+   worse**.
+
+On reference kernels those two effects sum positive (+2.77 − (−2.31) = +5.08) and
+fine-tuning looks like a win. On the delegated path the baseline's penalty is
+much smaller, so the same +2.77 cannot cover a 7.34-point deterioration, and the
+fine-tuned build ends up **significantly worse than plain PTQ of the original
+checkpoint**. Note the fine-tuned model's penalty barely differs between paths
+(−18.89 vs −17.97) while the baseline's halves (−21.20 vs −10.63): whatever the
+delegate rescues in the original checkpoint, fine-tuning destroys.
+
+**Conclusion: fine-tune-then-PTQ is not a substitute for QAT on FER**, and the
+recommendation this report made after A5-control — "try it before committing to
+the rebuild" — was tested and is withdrawn. Trying it was still the right call:
+it cost one GPU-hour against 1–2 weeks.
+
+Two further notes, neither about quantization:
+
+- **One epoch was the whole of the fine-tuning.** Early stopping fired at epoch 5
+  and restored epoch 1; val_loss rose monotonically (0.358 → 0.658) while train
+  accuracy went 0.90 → 0.99. FER's val split is the corrected notebook's own
+  cluster-disjoint split, so unlike the SER control this stopping signal is
+  trustworthy. The SER control, by contrast, ran all 15 epochs. That asymmetry
+  weakens any direct SER-vs-FER comparison of "the same recipe".
+- **The +2.77-point float improvement is a finding about the checkpoint, not
+  about quantization.** One epoch with balanced class weights beat the published
+  corrected model on its own frozen test set. It does not invalidate the
+  published 82.49% — that is what the corrected notebook produced — but it does
+  indicate the checkpoint was not fully converged, and it is worth a sentence in
+  the paper rather than silence.
 
 ### 7.5 Paired significance tests (McNemar) — and a correction
 
@@ -862,6 +916,31 @@ executes fine on reference kernels. Selective quantization can therefore yield a
 model a deployment runtime refuses to run, and it is not predictable from k — k=10
 and k=15 exempt strictly more layers and prepare without complaint.
 
+#### SER on the delegated path — measured, not argued
+
+A3 and A4 were initially re-run on FER only, on the argument that SER's A1
+accuracies move ≤0.83 points. That was an inference, so it was checked:
+
+| | XNNPACK | reference |
+|---|---|---|
+| A4-SER mean / SD / spread | 52.25 / 2.55 / **7.92** | 52.11 / 2.71 / **7.92** |
+| A3-SER k=3 → k=15 | 50.42 → 58.75 | 50.83 → 58.75 |
+
+**SER is path-invariant on both items.** A4's calibration spread is 7.92 points on
+*both* paths — the same number to two decimals — with per-config deltas from
+−1.25 to +2.50 (mean +0.14). A3's selective builds move by at most 0.83 points
+and k=15 is identical. Every SER conclusion in this report holds on either path,
+which is now a measurement rather than an argument.
+
+The contrast with FER is the point: the delegate is worth up to +15.40 points on
+a single FER calibration draw and essentially nothing on SER. Whatever the
+reference kernels do badly, they do it to EfficientNet-B0's depthwise/SE
+structure, not to a four-layer plain CNN.
+
+No SER selective build hit the delegate-prepare failure that FER's k=5 produces,
+so that fault belongs to one specific graph rather than to mixed-precision builds
+as a class.
+
 #### A2 cannot be measured on the delegated path
 
 Not a gap in effort: `tf.lite.experimental.QuantizationDebugger` takes no delegate
@@ -951,10 +1030,12 @@ bet rather than a settled one.
 
 Five things a follow-on study should pick up, all stated where they arise:
 
-1. ~~The QAT confound~~ — **done**, see §7 A5-control. It changed the
-   conclusion: +5.83 of QAT's +10.42 is the extra training, and QAT's own
-   +4.58 does not reach significance. The follow-on this creates is on FER:
-   **try fine-tune-then-PTQ before committing to a Keras rebuild for QAT.**
+1. ~~The QAT confound~~ and ~~fine-tune-then-PTQ on FER~~ — **both done**, see
+   §7 A5-control and A5-control-FER. On SER, +5.83 of QAT's +10.42 is the extra
+   training and QAT's own +4.58 is not significant. On FER the same recipe is
+   **worse than plain PTQ** on the deployment path (−4.57, p = 9.2e−5), because
+   it yields a better float model that quantizes worse. What remains open is
+   whether a genuine QAT rebuild helps FER — the cheap substitute does not.
 2. **The A4 seed count** — three seeds per block is enough to show the spread is
    large but too few to estimate per-block SDs, which is why the "variance shrinks
    at n=500" reading was left unclaimed.
@@ -967,9 +1048,9 @@ Five things a follow-on study should pick up, all stated where they arise:
    significance claims on the deployment path. A6's gap widens to 40.61 points
    there, so the conclusion will not change, but the numbers quoted should match
    the path they are quoted from. ~2 minutes.
-5. **SER on the delegated path for A3/A4.** Only FER was re-run, because SER's
-   A1 accuracies move by at most 0.83 points. That is an argument, not a
-   measurement.
+5. ~~SER on the delegated path for A3/A4~~ — **done**, see §7.6. SER is
+   path-invariant on both: A4's spread is 7.92 points on either path, A3's builds
+   move ≤0.83. The argument held, but it is now measured.
 
 ---
 

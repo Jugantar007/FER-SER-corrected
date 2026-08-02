@@ -1,0 +1,141 @@
+{
+  "model": "fer",
+  "purpose": "fine-tune-then-PTQ, the cheap alternative to a Keras rebuild for QAT (see A5-control)",
+  "epochs_requested": 15,
+  "epochs_run": 5,
+  "best_epoch": 1,
+  "learning_rate": 0.0001,
+  "batch": 32,
+  "calibration_samples": 200,
+  "calibration": "TRAIN split only, balanced, seed 42 (as quant_01)",
+  "validation": "the corrected notebook's cluster-disjoint val split",
+  "fp32_baseline_accuracy": 0.8249486652977412,
+  "finetuned_float_accuracy": 0.8521560574948666,
+  "ptq_baseline_accuracy": 0.6124229979466119,
+  "ptq_finetuned": {
+    "n_samples": 1948,
+    "accuracy": 0.6632443531827515,
+    "balanced_accuracy": 0.6056235267781187,
+    "macro_f1": 0.6322453399353597,
+    "weighted_f1": 0.6647842839909505,
+    "cohen_kappa": 0.5228590343060071,
+    "per_class": {
+      "Angry": {
+        "precision": 0.8266666666666667,
+        "recall": 0.3163265306122449,
+        "f1": 0.4575645756457565,
+        "support": 196
+      },
+      "Happy": {
+        "precision": 0.9628712871287128,
+        "recall": 0.6946428571428571,
+        "f1": 0.8070539419087137,
+        "support": 560
+      },
+      "Neutral": {
+        "precision": 0.5625,
+        "recall": 0.6865671641791045,
+        "f1": 0.6183719193427931,
+        "support": 603
+      },
+      "Sad": {
+        "precision": 0.582537517053206,
+        "recall": 0.7249575551782682,
+        "f1": 0.6459909228441755,
+        "support": 589
+      }
+    },
+    "confusion_matrix": [
+      [
+        62,
+        6,
+        80,
+        48
+      ],
+      [
+        2,
+        389,
+        96,
+        73
+      ],
+      [
+        3,
+        1,
+        414,
+        185
+      ],
+      [
+        8,
+        8,
+        146,
+        427
+      ]
+    ],
+    "class_names": [
+      "Angry",
+      "Happy",
+      "Neutral",
+      "Sad"
+    ],
+    "macro_auc_ovr": 0.8783117702856345,
+    "accuracy_mean": 0.6633021047227926,
+    "ci95_low": 0.6421971252566735,
+    "ci95_high": 0.6842915811088296
+  },
+  "points_gained_vs_ptq_baseline": 5.08,
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 0.22933186780453566,
+      "accuracy": 0.9012955643390426,
+      "val_loss": 0.35768917783499377,
+      "val_accuracy": 0.858094262295082
+    },
+    {
+      "epoch": 2,
+      "loss": 0.13688645166004232,
+      "accuracy": 0.9388449714536671,
+      "val_loss": 0.41212478457934787,
+      "val_accuracy": 0.8601434426229508
+    },
+    {
+      "epoch": 3,
+      "loss": 0.08005878821892282,
+      "accuracy": 0.9672815107597716,
+      "val_loss": 0.4945721812422204,
+      "val_accuracy": 0.858094262295082
+    },
+    {
+      "epoch": 4,
+      "loss": 0.04972893406698774,
+      "accuracy": 0.9822134387351779,
+      "val_loss": 0.5634081524717584,
+      "val_accuracy": 0.8565573770491803
+    },
+    {
+      "epoch": 5,
+      "loss": 0.029707051255299717,
+      "accuracy": 0.9891304347826086,
+      "val_loss": 0.6582804486803429,
+      "val_accuracy": 0.8550204918032787
+    }
+  ],
+  "verdict": "PTQ(baseline) 61.24% -> PTQ(fine-tuned) 66.32% (+5.08 pts), against FP32 82.49%. Fine-tuned float is 85.22%. Reference-kernel path; see the results file for the delegated numbers.",
+  "_environment": {
+    "timestamp": "2026-08-02T23:44:08",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}

@@ -110,6 +110,12 @@ the correction has to be declared rather than left for a reviewer.
   RAM. There is no single winner, and the paper should not imply one. The latency
   ordering is specific to **ai-edge-litert 2.1.4**, whose XNNPACK lacks hybrid
   depthwise coverage; quote the version with the number.
+- **A better float model can quantize worse, and reference kernels hid it.** On
+  FER, fine-tuning before post-training quantization produces a float model 2.77
+  points *better* (p = 5.7e−5) whose INT8 build is 4.57 points *worse* on the
+  deployment path (p = 9.2e−5) — while looking 5.08 points better on reference
+  kernels. Float accuracy is not a proxy for quantized accuracy, and neither is
+  the non-delegated path a proxy for deployment.
 - **Most of QAT's advantage is the extra training, not quantization awareness.**
   The control (same model, same 15 epochs, plain fine-tuning then post-training
   quantization) reaches 65.42% against QAT's 70.00% and PTQ's 59.58%: +5.83 points

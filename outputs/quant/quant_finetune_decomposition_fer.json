@@ -1,0 +1,66 @@
+{
+  "model": "fer",
+  "purpose": "decompose quant_10's raw gain into 'better float model' and 'changed quantization penalty', on both execution paths",
+  "float_baseline_accuracy_torch": 0.824435318275154,
+  "float_finetuned_accuracy_torch": 0.8521560574948666,
+  "note_torch_vs_tflite": "float accuracies here are from PyTorch; the TFLite fp32 control reads 0.8249 against torch's 0.8244, a one-image difference consistent with GPU non-determinism (REPORT \u00a76)",
+  "float_finetuned_vs_baseline": {
+    "delta_points": 2.77,
+    "b": 115,
+    "c": 61,
+    "n_discordant": 176,
+    "p_value": 5.714635683054461e-05
+  },
+  "paths": {
+    "reference kernels": {
+      "ptq_baseline_accuracy": 0.6124229979466119,
+      "ptq_finetuned_accuracy": 0.6632443531827515,
+      "penalty_baseline_points": -21.2,
+      "penalty_finetuned_points": -18.89,
+      "raw_gain_points": 5.08,
+      "from_better_float_points": 2.77,
+      "from_changed_penalty_points": 2.31,
+      "ptq_finetuned_vs_baseline": {
+        "delta_points": 5.08,
+        "b": 399,
+        "c": 300,
+        "n_discordant": 699,
+        "p_value": 0.00020532722976626254
+      }
+    },
+    "XNNPACK": {
+      "ptq_baseline_accuracy": 0.7181724845995893,
+      "ptq_finetuned_accuracy": 0.6724845995893224,
+      "penalty_baseline_points": -10.63,
+      "penalty_finetuned_points": -17.97,
+      "raw_gain_points": -4.57,
+      "from_better_float_points": 2.77,
+      "from_changed_penalty_points": -7.34,
+      "ptq_finetuned_vs_baseline": {
+        "delta_points": -4.57,
+        "b": 210,
+        "c": 299,
+        "n_discordant": 509,
+        "p_value": 9.240782675508084e-05
+      }
+    }
+  },
+  "verdict": "Fine-tuning yields a better float model (+2.77 pts, p=5.71e-05) that quantizes WORSE. On reference kernels the two effects happen to sum positive (+5.08); on the delegated deployment path they do not (-4.57, p=9.24e-05). Fine-tune-then-PTQ is not a substitute for QAT on FER.",
+  "_environment": {
+    "timestamp": "2026-08-03T00:22:36",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}

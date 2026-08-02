@@ -1,0 +1,149 @@
+{
+  "model": "ser",
+  "fp32_baseline_accuracy": 0.6083333333333333,
+  "ranked_layers_source": "D:\\Research FER and SER\\artifacts\\results\\quant_layerwise_ser.json",
+  "reference_formats": {
+    "int8_full_perchannel": {
+      "accuracy": 0.5041666666666667,
+      "size_mb": 0.449,
+      "top1_agreement": 0.7625,
+      "mean_abs_prob_diff": 0.04719106986332026,
+      "max_abs_prob_diff": 0.711541473865509,
+      "mean_kl_divergence": 0.28784227834505755
+    },
+    "int8_full_pertensor": {
+      "accuracy": 0.5125,
+      "size_mb": 0.434,
+      "top1_agreement": 0.75,
+      "mean_abs_prob_diff": 0.04896714206496217,
+      "max_abs_prob_diff": 0.793572723865509,
+      "mean_kl_divergence": 0.30076442321668523
+    },
+    "dynrange": {
+      "accuracy": 0.6041666666666666,
+      "size_mb": 0.446,
+      "top1_agreement": 0.9541666666666667,
+      "mean_abs_prob_diff": 0.015183785529869036,
+      "max_abs_prob_diff": 0.296058714389801,
+      "mean_kl_divergence": 0.02514084821107136
+    }
+  },
+  "selective_runs": [
+    {
+      "k_layers_kept_float": 3,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean"
+      ],
+      "size_mb": 0.547,
+      "accuracy": 0.5041666666666667,
+      "macro_f1": 0.4782379068474663,
+      "ci95_low": 0.44166666666666665,
+      "ci95_high": 0.5666666666666667,
+      "accuracy_delta_vs_fp32_points": -10.42,
+      "top1_agreement": 0.7625,
+      "mean_abs_prob_diff": 0.047153156659299866,
+      "max_abs_prob_diff": 0.711541473865509,
+      "mean_kl_divergence": 0.28765146302836203,
+      "accuracy_4class": 0.6
+    },
+    {
+      "k_layers_kept_float": 5,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean",
+        "sequential_1/batch_normalization_3_1/batchnorm/add_1",
+        "sequential_1/batch_normalization_1_2/batchnorm/add_1"
+      ],
+      "size_mb": 0.549,
+      "accuracy": 0.5166666666666667,
+      "macro_f1": 0.488298929331538,
+      "ci95_low": 0.4540625,
+      "ci95_high": 0.5791666666666667,
+      "accuracy_delta_vs_fp32_points": -9.17,
+      "top1_agreement": 0.775,
+      "mean_abs_prob_diff": 0.04463741725862158,
+      "max_abs_prob_diff": 0.6671836823225021,
+      "mean_kl_divergence": 0.2585228379668154,
+      "accuracy_4class": 0.6041666666666666
+    },
+    {
+      "k_layers_kept_float": 10,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean",
+        "sequential_1/batch_normalization_3_1/batchnorm/add_1",
+        "sequential_1/batch_normalization_1_2/batchnorm/add_1",
+        "sequential_1/batch_normalization_2_1/batchnorm/add_1",
+        "StatefulPartitionedCall_1:0",
+        "sequential_1/batch_normalization_1/batchnorm/add_1",
+        "sequential_1/conv2d_1_2/Relu;sequential_1/conv2d_1_2/BiasAdd;sequential_1/conv2d_1_2/convolution;sequential_1/conv2d_1_2/Squeeze1",
+        "sequential_1/batch_normalization_1_2/batchnorm/mul_1"
+      ],
+      "size_mb": 0.603,
+      "accuracy": 0.525,
+      "macro_f1": 0.4909512164912318,
+      "ci95_low": 0.46239583333333334,
+      "ci95_high": 0.5875,
+      "accuracy_delta_vs_fp32_points": -8.33,
+      "top1_agreement": 0.7833333333333333,
+      "mean_abs_prob_diff": 0.04203555176020116,
+      "max_abs_prob_diff": 0.6395529955625534,
+      "mean_kl_divergence": 0.16047619781739025,
+      "accuracy_4class": 0.6208333333333333
+    },
+    {
+      "k_layers_kept_float": 15,
+      "denylisted": [
+        "sequential_1/dense_1/MatMul;sequential_1/dense_1/Relu;sequential_1/dense_1/BiasAdd",
+        "sequential_1/dense_1_2/MatMul;sequential_1/dense_1_2/BiasAdd",
+        "sequential_1/global_average_pooling2d_1/Mean",
+        "sequential_1/batch_normalization_3_1/batchnorm/add_1",
+        "sequential_1/batch_normalization_1_2/batchnorm/add_1",
+        "sequential_1/batch_normalization_2_1/batchnorm/add_1",
+        "StatefulPartitionedCall_1:0",
+        "sequential_1/batch_normalization_1/batchnorm/add_1",
+        "sequential_1/conv2d_1_2/Relu;sequential_1/conv2d_1_2/BiasAdd;sequential_1/conv2d_1_2/convolution;sequential_1/conv2d_1_2/Squeeze1",
+        "sequential_1/batch_normalization_1_2/batchnorm/mul_1",
+        "sequential_1/conv2d_1/Relu;sequential_1/conv2d_1/BiasAdd;sequential_1/conv2d_1/convolution;sequential_1/conv2d_1/Squeeze1",
+        "sequential_1/batch_normalization_1/batchnorm/mul_1",
+        "sequential_1/conv2d_2_1/Relu;sequential_1/conv2d_2_1/BiasAdd;sequential_1/conv2d_2_1/convolution;sequential_1/conv2d_2_1/Squeeze1",
+        "sequential_1/conv2d_3_1/Relu;sequential_1/conv2d_3_1/BiasAdd;sequential_1/conv2d_3_1/convolution;sequential_1/conv2d_3_1/Squeeze1",
+        "sequential_1/batch_normalization_2_1/batchnorm/mul_1"
+      ],
+      "size_mb": 1.702,
+      "accuracy": 0.5875,
+      "macro_f1": 0.563484540769412,
+      "ci95_low": 0.525,
+      "ci95_high": 0.65,
+      "accuracy_delta_vs_fp32_points": -2.08,
+      "top1_agreement": 0.9083333333333333,
+      "mean_abs_prob_diff": 0.021758420223866752,
+      "max_abs_prob_diff": 0.3168600797653198,
+      "mean_kl_divergence": 0.04411382591884268,
+      "accuracy_4class": 0.6875
+    }
+  ],
+  "verdict": "best selective build (k=15) reaches 58.75% at 1.702 MB, +8.33 points vs full INT8 (50.42%) and -2.08 points vs FP32. Full INT8 is NOT recovered to FP32 level; report this honestly and use it to bound how much of the failure a few layers explain.",
+  "claim_to_check": "If a selective build reaches FP32-level accuracy at a size near full INT8, full integer quantization is recoverable and this is a novel result for the paper.",
+  "_environment": {
+    "timestamp": "2026-08-02T23:07:41",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}
