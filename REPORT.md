@@ -1028,7 +1028,11 @@ rebuilding EfficientNet-B0 in Keras and retraining (1–2 weeks). That is an ope
 decision rather than a queued task, and §7's A5 section argues it is a reasonable
 bet rather than a settled one.
 
-Five things a follow-on study should pick up, all stated where they arise:
+Five follow-ons were listed here. **Three have since been done and are struck
+through below**, kept rather than deleted because two of them changed a
+conclusion. Genuinely open: items 2 and 3, plus one new question raised by item
+1's result — whether a real QAT rebuild helps FER, now that the cheap substitute
+is ruled out.
 
 1. ~~The QAT confound~~ and ~~fine-tune-then-PTQ on FER~~ — **both done**, see
    §7 A5-control and A5-control-FER. On SER, +5.83 of QAT's +10.42 is the extra
@@ -1042,12 +1046,12 @@ Five things a follow-on study should pick up, all stated where they arise:
 3. **Early stopping's leaky validation split** in `quant_06` — augmented copies of
    one clip land on both sides of it. It never touches the frozen test set, but a
    speaker-disjoint validation carve would make the stopping point honest.
-4. **The delegated McNemar tests.** §7.5's paired tests use reference-kernel
-   predictions. `_xnn` caches now exist for every format, so re-running
-   `quant_07` + `mcnemar_compare.py` with `QUANT_XNNPACK=1` would put the
-   significance claims on the deployment path. A6's gap widens to 40.61 points
-   there, so the conclusion will not change, but the numbers quoted should match
-   the path they are quoted from. ~2 minutes.
+4. ~~The delegated McNemar tests~~ — **done**, see §7.6. Every paired test was
+   re-run on delegated predictions and committed as `mcnemar_*_xnnpack.json`. No
+   conclusion differs: dynamic range remains a tested non-difference from FP32 on
+   both models, the INT8 collapse remains significant, QAT remains
+   indistinguishable from FP32, and the withdrawn SER per-channel/per-tensor
+   reversal stays withdrawn. A6's gap is +40.61 points (p = 2.7e−116).
 5. ~~SER on the delegated path for A3/A4~~ — **done**, see §7.6. SER is
    path-invariant on both: A4's spread is 7.92 points on either path, A3's builds
    move ≤0.83. The argument held, but it is now measured.
