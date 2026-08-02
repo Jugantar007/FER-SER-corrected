@@ -110,9 +110,12 @@ the correction has to be declared rather than left for a reviewer.
   RAM. There is no single winner, and the paper should not imply one. The latency
   ordering is specific to **ai-edge-litert 2.1.4**, whose XNNPACK lacks hybrid
   depthwise coverage; quote the version with the number.
-- **QAT received 15 epochs of fine-tuning that post-training quantization did
-  not.** The control that would separate quantization-awareness from extra
-  training was not run.
+- **Most of QAT's advantage is the extra training, not quantization awareness.**
+  The control (same model, same 15 epochs, plain fine-tuning then post-training
+  quantization) reaches 65.42% against QAT's 70.00% and PTQ's 59.58%: +5.83 points
+  from training (p = 0.013), +4.58 from QAT itself (p = 0.061, not significant at
+  n = 240). Report QAT's margin over a *fine-tuned* PTQ baseline, not over an
+  untrained one.
 
 `REPORT.md` §9 lists what a follow-on study should measure to close each of these.
 

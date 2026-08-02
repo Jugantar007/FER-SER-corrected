@@ -1,0 +1,255 @@
+{
+  "model": "ser",
+  "purpose": "control for A5's fine-tuning confound",
+  "epochs_requested": 15,
+  "epochs_run": 14,
+  "learning_rate": 0.0001,
+  "calibration_samples": 200,
+  "float_4class_before_finetuning": 0.7083333333333334,
+  "float_4class_after_finetuning": 0.6916666666666667,
+  "float_8class_after_finetuning": 0.6,
+  "ptq_finetuned_8class": {
+    "n_samples": 240,
+    "accuracy": 0.55,
+    "balanced_accuracy": 0.53515625,
+    "macro_f1": 0.5170220330234622,
+    "weighted_f1": 0.5237123907805818,
+    "cohen_kappa": 0.4820971867007672,
+    "per_class": {
+      "neutral": {
+        "precision": 0.625,
+        "recall": 0.3125,
+        "f1": 0.4166666666666667,
+        "support": 16
+      },
+      "calm": {
+        "precision": 0.4482758620689655,
+        "recall": 0.8125,
+        "f1": 0.5777777777777777,
+        "support": 32
+      },
+      "happy": {
+        "precision": 0.3404255319148936,
+        "recall": 0.5,
+        "f1": 0.4050632911392405,
+        "support": 32
+      },
+      "sad": {
+        "precision": 0.15384615384615385,
+        "recall": 0.0625,
+        "f1": 0.08888888888888889,
+        "support": 32
+      },
+      "angry": {
+        "precision": 0.7666666666666667,
+        "recall": 0.71875,
+        "f1": 0.7419354838709677,
+        "support": 32
+      },
+      "fearful": {
+        "precision": 0.9,
+        "recall": 0.28125,
+        "f1": 0.42857142857142855,
+        "support": 32
+      },
+      "disgust": {
+        "precision": 0.7058823529411765,
+        "recall": 0.75,
+        "f1": 0.7272727272727273,
+        "support": 32
+      },
+      "surprised": {
+        "precision": 0.675,
+        "recall": 0.84375,
+        "f1": 0.75,
+        "support": 32
+      }
+    },
+    "confusion_matrix": [
+      [
+        5,
+        5,
+        5,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        26,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        6,
+        16,
+        2,
+        0,
+        1,
+        0,
+        7
+      ],
+      [
+        0,
+        18,
+        4,
+        2,
+        2,
+        0,
+        6,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
+        0,
+        23,
+        0,
+        2,
+        4
+      ],
+      [
+        1,
+        3,
+        11,
+        4,
+        1,
+        9,
+        1,
+        2
+      ],
+      [
+        0,
+        0,
+        7,
+        0,
+        1,
+        0,
+        24,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        3,
+        0,
+        1,
+        27
+      ]
+    ],
+    "class_names": [
+      "neutral",
+      "calm",
+      "happy",
+      "sad",
+      "angry",
+      "fearful",
+      "disgust",
+      "surprised"
+    ],
+    "macro_auc_ovr": null,
+    "accuracy_mean": 0.5508666666666667,
+    "ci95_low": 0.48333333333333334,
+    "ci95_high": 0.6125
+  },
+  "ptq_finetuned_4class": {
+    "n_samples": 240,
+    "accuracy": 0.6541666666666667,
+    "balanced_accuracy": 0.6627604166666666,
+    "macro_f1": 0.6328228937250364,
+    "weighted_f1": 0.6297729914019435,
+    "cohen_kappa": 0.5395710059171597,
+    "per_class": {
+      "Neutral": {
+        "precision": 0.59375,
+        "recall": 0.7916666666666666,
+        "f1": 0.6785714285714286,
+        "support": 48
+      },
+      "Happy": {
+        "precision": 0.5930232558139535,
+        "recall": 0.796875,
+        "f1": 0.68,
+        "support": 64
+      },
+      "Sad": {
+        "precision": 0.68,
+        "recall": 0.265625,
+        "f1": 0.38202247191011235,
+        "support": 64
+      },
+      "Angry": {
+        "precision": 0.7846153846153846,
+        "recall": 0.796875,
+        "f1": 0.7906976744186046,
+        "support": 64
+      }
+    },
+    "confusion_matrix": [
+      [
+        38,
+        5,
+        5,
+        0
+      ],
+      [
+        6,
+        51,
+        3,
+        4
+      ],
+      [
+        20,
+        17,
+        17,
+        10
+      ],
+      [
+        0,
+        13,
+        0,
+        51
+      ]
+    ],
+    "class_names": [
+      "Neutral",
+      "Happy",
+      "Sad",
+      "Angry"
+    ],
+    "macro_auc_ovr": null,
+    "accuracy_mean": 0.65511875,
+    "ci95_low": 0.5916666666666667,
+    "ci95_high": 0.7166666666666667
+  },
+  "ptq_baseline_4class": 0.5958333333333333,
+  "qat_4class": 0.7,
+  "points_from_extra_training": 5.83,
+  "points_from_quantization_awareness": 4.58,
+  "verdict": "PTQ(baseline) 59.58% -> PTQ(fine-tuned) 65.42% -> QAT 70.00% (4-class). Of A5's +10.42 point gap, +5.83 is attributable to the extra 15 epochs and +4.58 to quantization awareness itself.",
+  "_environment": {
+    "timestamp": "2026-08-02T21:30:24",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.4",
+    "torch": null,
+    "librosa": null,
+    "sklearn": "1.7.2",
+    "onnx2tf": null,
+    "onnxruntime": null
+  }
+}

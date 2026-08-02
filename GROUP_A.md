@@ -405,16 +405,28 @@ targets. Its value is that it is the only build here that is *fully integer* and
 accurate — for an NPU or MCU that cannot run float activations, dynamic range is
 not an option and QAT is.
 
-Caveats, all in REPORT.md §7: QAT got 15 epochs PTQ did not (the evidence argues
-the gain is quantization-awareness, since QAT lands below the float baseline
-rather than above it, but the strict control was not run), and early stopping
-used a validation split with augmentation leakage, which affects only the
-stopping point, not the reported test number.
+**The control (`quant_09`) splits that gain, and most of it is not QAT.** Same
+model, same 15 epochs, same seed and split, but plain fine-tuning followed by
+post-training quantization:
 
-Whether to rebuild FER in Keras for QAT (1–2 weeks) is **not settled** by this.
-SER is a four-conv CNN losing 11.25 points to PTQ; FER is EfficientNet-B0 whose
-failure A2/A3 showed to be distributed across the network. Encouraging, not
-conclusive.
+| build | 4-class | step | p |
+|---|---|---|---|
+| PTQ(baseline) | 59.58 | — | — |
+| PTQ(fine-tuned) | **65.42** | +5.83 | 0.013 |
+| QAT | 70.00 | +4.58 | 0.061 (n.s.) |
+
+So **+5.83 of the +10.42 is the extra training**, and QAT's own contribution does
+not reach significance on 240 samples. Extra training makes the model more
+*quantizable* without making it more accurate — the fine-tuned float model is
+actually worse (69.17% vs 70.83%).
+
+Remaining caveat: early stopping used a validation split with augmentation
+leakage, which affects the stopping point, not the reported test number.
+
+**Do not rebuild FER in Keras for QAT before trying fine-tune-then-PTQ.** That
+path needs no rebuild, no `tfmot` and no architecture surgery, and on SER it
+captured 56% of the total gap. The 1–2 week QAT rebuild was justified by a margin
+that is mostly available for hours of work.
 
 ### Execution path — read this before citing any quantized number
 

@@ -38,7 +38,11 @@ The five findings the paper should carry:
    k = 3 to 15 (§7 A3, §7.6).
 4. **QAT fixes it on SER** — indistinguishable from FP32 at INT8 size — but
    dynamic range already achieves that in less space, so QAT matters only for
-   targets that cannot run float activations at all (§7, A5).
+   targets that cannot run float activations at all. **And most of QAT's margin
+   over post-training quantization is just the extra training**: fine-tuning the
+   float model for the same 15 epochs and then quantizing recovers +5.83 of the
+   +10.42 (p = 0.013), leaving QAT's own contribution at +4.58 and not
+   significant (§7 A5-control).
 5. **The format recommendation is architecture-dependent once latency is real —
    on the runtime version measured.** On SER, dynamic range is both the most
    accurate and the fastest build. On FER it is the most accurate and the
@@ -571,15 +575,16 @@ integer *and* accurate, which matters when the target cannot execute float
 activations at all — an NPU or microcontroller path where dynamic range is not
 an option. State it that way, not as "QAT is better."
 
-Three limitations, none of which touch the frozen test set:
+Three limitations, none of which touch the frozen test set. **The first has since
+been measured and it changes the conclusion — see A5-control below.**
 
 1. **The comparison carries a confound.** QAT received 15 epochs of fine-tuning
-   that PTQ did not, so part of +10.42 could in principle be extra training
-   rather than quantization awareness. The evidence argues against that reading —
-   QAT ends at 70.00%, *below* the 70.83% float baseline, so the extra epochs
-   did not make a better model, they made a model that survives quantization.
-   A strict control (fine-tune the float model 15 epochs, then PTQ it) was not
-   run and would settle it.
+   that PTQ did not, so part of +10.42 could be extra training rather than
+   quantization awareness. *(Originally argued away here on the grounds that QAT
+   ends below the float baseline, so the extra epochs "did not make a better
+   model". That inference was wrong: a model can become more quantizable without
+   becoming more accurate, and that is exactly what happened. The control
+   measured it.)*
 2. **Early stopping used a leaky validation split.** The 10% validation set is
    drawn at random from the 2880 *augmented* training samples, so augmented
    copies of the same clip appear on both sides; validation accuracy saturates
@@ -597,7 +602,50 @@ at seed 42 (−14.65 expected across calibration draws, per A4) on EfficientNet-
 and A2/A3 showed that failure is distributed rather than concentrated in a few
 layers. QAT rescuing the small model is encouraging but not evidence it rescues
 the large one. Treat the 1–2 week rebuild as a reasonable bet, not a settled
-conclusion.
+conclusion. **The control below weakens that bet considerably.**
+
+### A5-control — how much of QAT's gain is just more training?
+
+`quant_09_qat_control_ser.py` removes the confound the only way that settles it:
+the same float model, fine-tuned for the same 15 epochs with the same
+hyper-parameters, split and seed — then post-training quantized. The only
+difference from A5 is that no quantization wrappers were applied before training.
+
+| build | 4-class | 8-class | step | p (McNemar, uncorrected) |
+|---|---|---|---|---|
+| PTQ(baseline) | 59.58 | 50.83 | — | — |
+| **PTQ(fine-tuned)** | **65.42** | 55.42 | **+5.83** | **0.013** |
+| QAT | 70.00 | 60.42 | +4.58 | **0.061** |
+
+Identical on the delegated path (65.42 either way; PTQ baseline 60.00 there), so
+this does not depend on execution path.
+
+**A5's headline decomposes, and the part attributable to QAT is not significant.**
+Of the +10.42 points QAT held over post-training quantization, **+5.83 comes from
+the extra 15 epochs alone** (p = 0.013) and **+4.58 from quantization awareness**
+— which at 29 discordant samples does not reach significance (p = 0.061
+uncorrected, and worse under any correction). Fine-tuning and then post-training
+quantizing captures most of the measurable benefit.
+
+**The inference I had used to argue the confound away was wrong**, and the way it
+was wrong is worth recording. The fine-tuned float model is *less* accurate than
+the baseline (69.17% vs 70.83% 4-class), which I had taken as evidence that extra
+training could not explain QAT's gain. But its INT8 conversion is 5.83 points
+better. Extra training made the model **more quantizable without making it more
+accurate** — quantizability and accuracy are different properties, and reasoning
+from one to the other does not work.
+
+Two things this does *not* say. It does not show QAT is useless: +4.58 points is
+a real point estimate and 240 samples has little power to resolve it — "not
+demonstrated" is not "no effect". And it does not touch A5's other result, that
+QAT INT8 is statistically indistinguishable from FP32 (p_Holm = 1.0).
+
+**What it does change is the FER recommendation.** The case for rebuilding
+EfficientNet-B0 in Keras for QAT (1–2 weeks) rested on QAT's margin over PTQ.
+Most of that margin is available from fine-tuning before quantizing, which needs
+no rebuild, no `tfmot`, and no architecture surgery. **Try fine-tune-then-PTQ on
+FER first** — it is hours of work against weeks, and on SER it recovered 56% of
+the total gap.
 
 ### 7.5 Paired significance tests (McNemar) — and a correction
 
@@ -903,9 +951,10 @@ bet rather than a settled one.
 
 Five things a follow-on study should pick up, all stated where they arise:
 
-1. **The QAT confound** — a float model fine-tuned for the same 15 epochs and
-   then post-training quantized would separate quantization-awareness from extra
-   training. ~25 minutes.
+1. ~~The QAT confound~~ — **done**, see §7 A5-control. It changed the
+   conclusion: +5.83 of QAT's +10.42 is the extra training, and QAT's own
+   +4.58 does not reach significance. The follow-on this creates is on FER:
+   **try fine-tune-then-PTQ before committing to a Keras rebuild for QAT.**
 2. **The A4 seed count** — three seeds per block is enough to show the spread is
    large but too few to estimate per-block SDs, which is why the "variance shrinks
    at n=500" reading was left unclaimed.
