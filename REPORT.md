@@ -597,12 +597,12 @@ been measured and it changes the conclusion — see A5-control below.**
 
 **On whether to rebuild FER in Keras**, which the script's automatic verdict
 recommends: that verdict fires on a threshold and does not know the two models
-differ. SER's PTQ failure is −11.25 points on a four-conv CNN; FER's is −21.25
-at seed 42 (−14.65 expected across calibration draws, per A4) on EfficientNet-B0,
-and A2/A3 showed that failure is distributed rather than concentrated in a few
+differ. SER's PTQ failure is −11.25 points on a four-conv CNN; FER's is −10.68 on
+the deployment path (−21.25 on reference kernels, §7.6) on EfficientNet-B0, and
+A2/A3 showed that failure is distributed rather than concentrated in a few
 layers. QAT rescuing the small model is encouraging but not evidence it rescues
-the large one. Treat the 1–2 week rebuild as a reasonable bet, not a settled
-conclusion. **The control below weakens that bet considerably.**
+the large one. **The two control sections below narrow the expected benefit
+considerably** — read them before treating the rebuild as worthwhile at all.
 
 ### A5-control — how much of QAT's gain is just more training?
 
@@ -1025,8 +1025,26 @@ so formats can be computed in parallel processes and merged by a final pass.
 Nothing was reported as done that was not measured. **Every item A1–A6 is now
 run**, on both models except A5, which exists only for SER: QAT on FER would mean
 rebuilding EfficientNet-B0 in Keras and retraining (1–2 weeks). That is an open
-decision rather than a queued task, and §7's A5 section argues it is a reasonable
-bet rather than a settled one.
+decision rather than a queued task, and **§7's A5-control sections narrow the
+expected benefit considerably** — three results have accumulated against the
+optimistic reading:
+
+- **A5-control**: on SER, only +4.58 of QAT's +10.42 point margin is attributable
+  to quantization awareness, and that part does not reach significance
+  (p = 0.061). The demonstrated effect is from the extra training.
+- **A5-control-FER**: the cheap version of that extra training — fine-tune, then
+  post-training quantize — is *worse* than plain PTQ on FER's deployment path
+  (−4.57, p = 9.2e−5). SER's pattern does not transfer, and the one
+  FER-specific datum available says training before quantization can hurt this
+  model rather than help it.
+- **§7.6**: FER's full-INT8 penalty on the deployment path is −10.68 points, not
+  −21.25, so there is roughly half as much to recover as the figure that
+  motivated the rebuild.
+
+None of that shows QAT would fail on FER — it has not been tried, and the
+architectures differ. It does mean the rebuild is now a **speculative** 1–2 weeks
+against a smaller gap than advertised, with the only cheap probe of the idea
+having come back negative.
 
 Five follow-ons were listed here. **Three have since been done and are struck
 through below**, kept rather than deleted because two of them changed a
