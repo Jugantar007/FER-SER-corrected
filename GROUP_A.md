@@ -315,6 +315,26 @@ gone. Publishable as a negative result: it strengthens the case for dynamic rang
 as the default (0.45 MB at baseline accuracy) and bounds how much of the INT8
 failure a handful of layers can explain.
 
+### A3 — selective (mixed-precision) quantization, FER
+
+| k layers kept float | MB | acc % | Δ vs FP32 | Δ vs full INT8 | agreement |
+|---|---|---|---|---|---|
+| 3 | 4.891 | 63.19 | −19.30 | +1.95 | 0.632 |
+| 5 | 4.898 | 63.14 | −19.35 | +1.90 | 0.632 |
+| 10 | 4.960 | 62.68 | −19.82 | +1.44 | 0.631 |
+| 15 | 5.210 | 62.83 | −19.66 | +1.59 | 0.629 |
+
+**Flat curve, and a sharper negative result than SER's.** k=3 buys 1.95 points
+over full INT8 and k=15 buys less; all four CIs overlap almost entirely, so the
+apparent decline with larger k is untested noise, not an ordering. Dynamic range
+is smaller than every selective build (4.531 MB) and 19 points more accurate —
+there is no k worth choosing on this model.
+
+Pair this with A2 carefully: A2 shows quantization error concentrates in the SE
+global-average-pools, but A3 shows those layers are not the *cause*. Where the
+error is largest is not where the failure comes from; it is distributed. Full
+detail in REPORT.md §7.
+
 ### A4 — calibration sensitivity, SER
 
 18 configs: {50, 200, 500} × {balanced, natural} × 3 seeds, each on the full test

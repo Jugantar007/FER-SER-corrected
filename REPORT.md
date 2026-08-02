@@ -303,6 +303,38 @@ and it is publishable: it strengthens the case for dynamic range as the default
 (0.45 MB at baseline accuracy) and bounds how much of the INT8 failure a handful
 of layers can explain.
 
+### A3 — selective (mixed-precision) quantization, FER
+
+Layers ranked by A2's error profile, then the top *k* kept in float while
+everything else goes INT8. Reference points: full INT8 per-channel is 61.24% at
+4.891 MB, dynamic range 82.44% at 4.531 MB, FP32 82.49%.
+
+| k kept float | MB | acc % | Δ vs FP32 | Δ vs full INT8 | agreement |
+|---|---|---|---|---|---|
+| 3 | 4.891 | 63.19 | −19.30 | +1.95 | 0.632 |
+| 5 | 4.898 | 63.14 | −19.35 | +1.90 | 0.632 |
+| 10 | 4.960 | 62.68 | −19.82 | +1.44 | 0.631 |
+| 15 | 5.210 | 62.83 | −19.66 | +1.59 | 0.629 |
+
+**The curve is flat.** Freeing the three worst layers buys 1.95 points; freeing
+fifteen buys less. Every build stays about 19 points below FP32, and the 95% CIs
+overlap almost entirely (k=3 spans 61.09–65.20, k=15 spans 60.68–64.89), so the
+apparent decline with larger k is not a real ordering — these are paired builds
+on one test set and nothing here is worth claiming without a McNemar test, which
+is the same trap §7.5 documents for the format comparison.
+
+Read alongside A2, this is the important negative result. A2 found quantization
+error concentrated in the squeeze-and-excitation global-average-pools (4.8×
+enriched among the worst layers), which invites the inference that protecting
+them should fix the model. It does not. **Where the error is largest is not where
+the failure comes from** — the collapse is distributed across the network, so no
+small set of exemptions recovers it.
+
+The deployment consequence is the same as on SER, and stronger: dynamic range is
+smaller than every selective build (4.531 MB vs 4.891–5.210) *and* 19 points more
+accurate. There is no k at which selective quantization is the right choice for
+this model.
+
 ### A4 — calibration sensitivity, SER
 
 18 configurations: {50, 200, 500} samples × {balanced, natural} × 3 seeds, each
