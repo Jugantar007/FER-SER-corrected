@@ -36,7 +36,8 @@ import tensorflow as tf
 import config as C
 from common import (get_logger, save_json, load_json, full_metrics, bootstrap_ci,
                     agreement_metrics, run_tflite, load_keras_compat,
-                    keras_saved_model_dir, four_class_summation, labels_8_to_4)
+                    keras_saved_model_dir, four_class_summation, labels_8_to_4,
+                    DelegatePrepareError)
 from quant_01_convert import fer_representative_dataset, ser_representative_dataset
 from quant_02_evaluate_formats import (load_fer_test, load_ser_test, check_frozen,
                                        cached_predictions)
@@ -120,7 +121,20 @@ def main():
         out = C.MODELS / f"{tag}_int8_selective_k{k}.tflite"
         out.write_bytes(blob)
         # Cached too, so an interrupted sweep resumes instead of restarting.
-        P = cached_predictions(tag, f"int8_selective_k{k}", X)
+        try:
+            P = cached_predictions(tag, f"int8_selective_k{k}", X)
+        except DelegatePrepareError as e:
+            # A mixed-precision graph the deployment runtime will not execute is
+            # a result, not a crash: record it and keep sweeping.
+            log.error("k=%d: XNNPACK failed to prepare this build -- %s", k, e)
+            runs.append({"k_layers_kept_float": k, "denylisted": denylist,
+                         "size_mb": round(out.stat().st_size / 1e6, 3),
+                         "accuracy": None,
+                         "delegate_prepare_failed": True,
+                         "note": ("XNNPACK accepted the graph then failed to "
+                                  "prepare its runtime; this build does not run "
+                                  "on the delegated path")})
+            continue
         pred = P.argmax(1)
         m = full_metrics(y, pred, class_names)
         m.update(bootstrap_ci(y, pred))
@@ -139,9 +153,12 @@ def main():
 
     # --- did selective quantization recover full INT8? --------------------
     verdict = "no selective build completed"
-    if runs:
+    # Builds the delegate refused to prepare carry accuracy=None and are excluded
+    # from the ranking -- they are reported, but they have no accuracy to compare.
+    scored = [r for r in runs if r.get("accuracy") is not None]
+    if scored:
         full_int8 = ref.get("int8_full_perchannel", {}).get("accuracy")
-        best = max(runs, key=lambda r: r["accuracy"])
+        best = max(scored, key=lambda r: r["accuracy"])
         within_1pt = abs(best["accuracy"] - base_acc) * 100 <= 1.0
         if full_int8 is not None:
             gained = (best["accuracy"] - full_int8) * 100
@@ -165,11 +182,11 @@ def main():
                                   "recoverable and this is a novel result for the paper.")},
               C.RESULTS / f"quant_selective_{tag}.json")
 
-    if runs:
+    if scored:
         fig, ax = plt.subplots(figsize=(6.2, 3.8))
-        ax.plot([r["size_mb"] for r in runs], [r["accuracy"] * 100 for r in runs],
+        ax.plot([r["size_mb"] for r in scored], [r["accuracy"] * 100 for r in scored],
                 "o-", color="#4d4d4d", label="selective INT8")
-        for r in runs:
+        for r in scored:
             ax.annotate(f"k={r['k_layers_kept_float']}",
                         (r["size_mb"], r["accuracy"] * 100),
                         textcoords="offset points", xytext=(5, 5), fontsize=8)

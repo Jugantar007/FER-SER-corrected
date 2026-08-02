@@ -36,9 +36,16 @@ log = get_logger("quant_07_stage")
 
 
 def newest_cache(tag, fmt):
-    """The cache key embeds the .tflite mtime and size; take the most recent."""
-    hits = sorted(C.CACHE.glob(f"preds_{tag}_{fmt}_*.npy"),
-                  key=lambda p: p.stat().st_mtime)
+    """The cache key embeds the .tflite mtime and size; take the most recent.
+
+    Delegated predictions carry an `_xnn` suffix and are NOT interchangeable with
+    reference-kernel ones, so only caches matching the current execution path are
+    eligible -- otherwise a delegated run would leave caches that a later
+    reference-path staging silently picks up as "newest"."""
+    from common import USE_XNNPACK
+    hits = [p for p in C.CACHE.glob(f"preds_{tag}_{fmt}_*.npy")
+            if p.stem.endswith("_xnn") == USE_XNNPACK]
+    hits.sort(key=lambda p: p.stat().st_mtime)
     return hits[-1] if hits else None
 
 

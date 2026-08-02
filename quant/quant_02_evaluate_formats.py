@@ -75,10 +75,17 @@ def cached_predictions(tag, fmt, X):
     """Quantized FER inference costs minutes per format on x86, so predictions are
     cached. This lets formats run in parallel processes and makes a re-run cheap.
     The cache key includes the model file's mtime+size, so a rebuilt .tflite
-    invalidates it automatically."""
+    invalidates it automatically.
+
+    It also includes the execution path. Reference-kernel and XNNPACK-delegated
+    predictions differ by up to 10 accuracy points on FER, so sharing one cache
+    between them would silently mix the two -- a delegated run would reuse
+    reference predictions for any model it did not rebuild."""
+    from common import USE_XNNPACK
     path = C.MODELS / f"{tag}_{fmt}.tflite"
     st = path.stat()
-    cache = C.CACHE / f"preds_{tag}_{fmt}_{int(st.st_mtime)}_{st.st_size}.npy"
+    suffix = "_xnn" if USE_XNNPACK else ""
+    cache = C.CACHE / f"preds_{tag}_{fmt}_{int(st.st_mtime)}_{st.st_size}{suffix}.npy"
     if cache.exists():
         P = np.load(cache)
         if len(P) == len(X):

@@ -1,0 +1,139 @@
+{
+  "model": "fer",
+  "fp32_baseline_accuracy": 0.8249486652977412,
+  "ranked_layers_source": "D:\\Research FER and SER\\artifacts\\results\\quant_layerwise_fer.json",
+  "reference_formats": {
+    "int8_full_perchannel": {
+      "accuracy": 0.7181724845995893,
+      "size_mb": 4.891,
+      "top1_agreement": 0.7505133470225873,
+      "mean_abs_prob_diff": 0.11953138813529708,
+      "max_abs_prob_diff": 0.998623516678327,
+      "mean_kl_divergence": 0.4187662889192424
+    },
+    "int8_full_pertensor": {
+      "accuracy": 0.31211498973305957,
+      "size_mb": 4.165,
+      "top1_agreement": 0.35369609856262835,
+      "mean_abs_prob_diff": 0.29061273225532414,
+      "max_abs_prob_diff": 0.98682799349133,
+      "mean_kl_divergence": 1.0560301360343918
+    },
+    "dynrange": {
+      "accuracy": 0.8280287474332649,
+      "size_mb": 4.531,
+      "top1_agreement": 0.9558521560574949,
+      "mean_abs_prob_diff": 0.019712816709142256,
+      "max_abs_prob_diff": 0.5669031425272271,
+      "mean_kl_divergence": 0.017296852845550693
+    }
+  },
+  "selective_runs": [
+    {
+      "k_layers_kept_float": 3,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631"
+      ],
+      "size_mb": 4.891,
+      "accuracy": 0.7217659137577002,
+      "macro_f1": 0.6822418920041174,
+      "ci95_low": 0.702258726899384,
+      "ci95_high": 0.742299794661191,
+      "accuracy_delta_vs_fp32_points": -10.32,
+      "top1_agreement": 0.752053388090349,
+      "mean_abs_prob_diff": 0.11801791921566204,
+      "max_abs_prob_diff": 0.9987404919688481,
+      "mean_kl_divergence": 0.41215686270833907
+    },
+    {
+      "k_layers_kept_float": 5,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631",
+        "model/tf.math.add_31/Add;model/tf.nn.convolution_21/convolution;Const_1101",
+        "model/tf.math.reduce_mean_5/Mean"
+      ],
+      "size_mb": 4.898,
+      "accuracy": null,
+      "delegate_prepare_failed": true,
+      "note": "XNNPACK accepted the graph then failed to prepare its runtime; this build does not run on the delegated path"
+    },
+    {
+      "k_layers_kept_float": 10,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631",
+        "model/tf.math.add_31/Add;model/tf.nn.convolution_21/convolution;Const_1101",
+        "model/tf.math.reduce_mean_5/Mean",
+        "model/tf.math.add_19/Add;model/tf.nn.convolution_13/convolution;Const_1311",
+        "model/tf.math.add_12/Add;model/tf.nn.convolution_9/convolution;Const_1421",
+        "model/tf.math.reduce_mean_6/Mean",
+        "model/tf.math.add_69/Add;model/tf.nn.convolution_45/convolution;Const_491",
+        "model/tf.math.sigmoid_5/Sigmoid"
+      ],
+      "size_mb": 4.96,
+      "accuracy": 0.7258726899383984,
+      "macro_f1": 0.6850827241687482,
+      "ci95_low": 0.7053388090349076,
+      "ci95_high": 0.7453798767967146,
+      "accuracy_delta_vs_fp32_points": -9.91,
+      "top1_agreement": 0.7648870636550308,
+      "mean_abs_prob_diff": 0.11827188382769357,
+      "max_abs_prob_diff": 0.9957275707172311,
+      "mean_kl_divergence": 0.4074257616553014
+    },
+    {
+      "k_layers_kept_float": 15,
+      "denylisted": [
+        "model/tf.math.reduce_mean_7/Mean",
+        "model/tf.math.add_7/Add;model/tf.nn.convolution_5/convolution;Const_1521",
+        "model/tf.math.add_2/Add;model/tf.nn.convolution_1/convolution;Const_1631",
+        "model/tf.math.add_31/Add;model/tf.nn.convolution_21/convolution;Const_1101",
+        "model/tf.math.reduce_mean_5/Mean",
+        "model/tf.math.add_19/Add;model/tf.nn.convolution_13/convolution;Const_1311",
+        "model/tf.math.add_12/Add;model/tf.nn.convolution_9/convolution;Const_1421",
+        "model/tf.math.reduce_mean_6/Mean",
+        "model/tf.math.add_69/Add;model/tf.nn.convolution_45/convolution;Const_491",
+        "model/tf.math.sigmoid_5/Sigmoid",
+        "model/tf.math.sigmoid/Sigmoid",
+        "model/tf.math.sigmoid_1/Sigmoid",
+        "model/tf.math.add_95/Add;model/tf.nn.convolution_61/convolution;Const_91",
+        "model/tf.math.add_50/Add;model/tf.nn.convolution_33/convolution;Const_801",
+        "model/tf.math.add_33/Add;model/tf.nn.convolution_23/convolution;Const_1061"
+      ],
+      "size_mb": 5.21,
+      "accuracy": 0.7217659137577002,
+      "macro_f1": 0.6792626871807041,
+      "ci95_low": 0.7017453798767967,
+      "ci95_high": 0.7417864476386037,
+      "accuracy_delta_vs_fp32_points": -10.32,
+      "top1_agreement": 0.7582135523613963,
+      "mean_abs_prob_diff": 0.11763496115267755,
+      "max_abs_prob_diff": 0.9955615715255942,
+      "mean_kl_divergence": 0.4072278026215232
+    }
+  ],
+  "verdict": "best selective build (k=10) reaches 72.59% at 4.960 MB, +0.77 points vs full INT8 (71.82%) and -9.91 points vs FP32. Full INT8 is NOT recovered to FP32 level; report this honestly and use it to bound how much of the failure a few layers explain.",
+  "claim_to_check": "If a selective build reaches FP32-level accuracy at a size near full INT8, full integer quantization is recoverable and this is a novel result for the paper.",
+  "_environment": {
+    "timestamp": "2026-08-02T20:48:39",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}

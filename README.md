@@ -71,6 +71,7 @@ runbook, the decisions taken while implementing, and the verification results.
 | A3 | selective (mixed-precision) quantization sweep | `quant_05` |
 | A4 | calibration sensitivity (count × balance × seed) | `quant_04` |
 | A5 | quantization-aware training, SER first | `quant_06` |
+| — | A1/A6 re-evaluated with the XNNPACK delegate engaged | `quant_08` |
 
 Latency, memory and thermal numbers are Group B and need the Raspberry Pi; nothing
 here substitutes for them.
@@ -92,9 +93,21 @@ the correction has to be declared rather than left for a reviewer.
   is no statistically detectable accuracy difference from FP32 (p = 1.0, paired
   McNemar), but the FER build disagrees with FP32 on 4.9% of test images. State
   the agreement rate alongside the accuracy.
-- **Full-INT8 accuracy on FER is a distribution, not a number.** It moves 17.4
-  points across 18 calibration draws, so cite mean ± SD over seeds rather than a
-  single run (`quant_calibration_sensitivity_fer.json`).
+- **Every quantized number depends on which kernels executed it.** TFLite applies
+  no XNNPACK delegate unless asked (litert 2.1.4; 2.1.6 does by default), and the
+  study's original measurements ran on reference kernels. On FER that is worth
+  +10.6 points for full INT8. Both paths are committed — `*_xnnpack.json` beside
+  the originals — and the delegated ones are what deployment claims should rest
+  on. Any latency or accuracy figure must state which path produced it.
+- **Full-INT8 accuracy on FER is a distribution, not a number.** It moves 8.8
+  points across 18 calibration draws on the deployment path (17.4 on reference
+  kernels), so cite mean ± SD over seeds rather than a single run
+  (`quant_calibration_sensitivity_fer_xnnpack.json`).
+- **The best format for FER depends on which axis you optimise.** Dynamic range
+  is the most accurate (82.80%) and the *slowest* (216 ms); full INT8 is fastest
+  (7.7 ms) at −10.7 points; fp16 matches FP32 accuracy at FP32 speed and half the
+  file size, but dequantizes to fp32 in RAM. There is no single winner, and the
+  paper should not imply one.
 - **QAT received 15 epochs of fine-tuning that post-training quantization did
   not.** The control that would separate quantization-awareness from extra
   training was not run.

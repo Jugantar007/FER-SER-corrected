@@ -12,21 +12,38 @@ This is the narrative record: what was found, what was decided and why, what
 broke, and what the numbers came out as. `GROUP_A.md` is the runbook; this is the
 account of getting there.
 
-**All six items are run.** The four findings the paper should carry:
+**All six items are run, and then re-run on a second execution path.** Late in the
+study it emerged that `ai-edge-litert` 2.1.4 applies **no delegate unless asked**,
+so every quantized measurement had been taken on TFLite's reference kernels rather
+than the XNNPACK path a deployment runtime uses. On FER that is worth up to 10.6
+accuracy points and ~80× speed. §7.6 reports both paths; the reference-kernel
+numbers are kept, not replaced, because they are what the original measurements
+were. **Where the two disagree, cite the delegated path** — it is the one that
+corresponds to deployment.
+
+The five findings the paper should carry:
 
 1. **Dynamic range is the deployment answer** on both models — no statistically
    detectable accuracy difference from FP32 (p = 1.0 paired, not merely an
    overlapping interval) at ~4× compression. Accuracy, note, not behaviour: it
    still disagrees with FP32 on 4.9% of FER test images.
-2. **Full INT8 collapses**, and on FER the size of that collapse is not a fixed
-   quantity: it spans 17.4 points across 18 calibration draws, so A1's −21.25
-   should be cited as mean ± SD, not as the number (§7, A4).
+2. **Full INT8 collapses**, but by how much depends on both calibration and
+   execution path. On FER the deployment-path penalty is **−10.7 points** (not
+   the −21.25 measured on reference kernels), and it still varies 8.8 points
+   across 18 calibration draws. Cite it as mean ± SD over seeds, on the delegated
+   path (§7 A4, §7.6).
 3. **The collapse is distributed, not localised.** A2 finds the largest error in
    the squeeze-and-excitation pools; A3 shows exempting those layers recovers
-   almost nothing (§7, A3).
+   almost nothing — **+0.77 points at best** on the deployment path, across
+   k = 3 to 15 (§7 A3, §7.6).
 4. **QAT fixes it on SER** — indistinguishable from FP32 at INT8 size — but
    dynamic range already achieves that in less space, so QAT matters only for
    targets that cannot run float activations at all (§7, A5).
+5. **The format recommendation is architecture-dependent once latency is real.**
+   On SER, dynamic range is both the most accurate and the fastest build. On FER
+   it is the most accurate and the *slowest* — 216 ms against full INT8's 7.7 ms
+   — because XNNPACK's dynamic-range support does not cover the depthwise
+   convolutions EfficientNet-B0 is built from (§7.6).
 
 ---
 
@@ -214,6 +231,30 @@ not a bug: tfmot's `MovingAverageQuantizer` starts with default activation range
 that clamp everything until training adapts them, and one epoch restores full
 accuracy. The script now logs this checkpoint explicitly so the two failure modes
 are distinguishable.
+
+### 4.4 Two ways the re-runs would have silently mixed execution paths
+
+Found while setting up §7.6's delegated re-runs, and both are the same species of
+bug as the delegate problem itself — no error, just a plausible wrong number.
+
+**The prediction cache did not know about the delegate.** `cached_predictions()`
+keys on the model file's mtime and size. A delegated run of A3 would have rebuilt
+the selective models (new mtime, cache miss, correctly recomputed) while pulling
+the FP32 baseline and the reference formats it compares against from the
+*reference-kernel* cache — one result file, two execution paths, no warning. The
+key now carries an `_xnn` suffix.
+
+**Staging then picked the wrong cache.** `quant_07` takes the newest cache per
+format. Once `_xnn` entries existed they would be newest, so the next
+reference-path McNemar staging would have silently ingested delegated
+predictions. It now filters to caches matching the current path.
+
+**And a crash worth recording rather than tidying away.** When A3's k=5 build
+turned out to fail delegate preparation, the first fix recorded a null-accuracy
+row but left `max(runs, key=...)` and the plot to consume it, so the sweep
+completed all four builds and then died in the summary. Two runs were lost to
+that. The lesson is mundane and general: adding a sentinel value means finding
+everything that reads it.
 
 ---
 
@@ -619,7 +660,140 @@ Every staged accuracy was checked against the A1 table before testing.
 
 ---
 
+### 7.6 Execution path: reference kernels vs XNNPACK
+
+**How this was found.** The x86 latencies in §8 had a suspicious shape — dynamic
+range 120× slower than FP32, and 28 threads slower than 8. That is the signature
+of delegate fallback, not of expensive kernels. It was checked directly rather
+than inferred: create an interpreter, ask whether XNNPACK announces itself, and
+A/B the same model with `OpResolverType.BUILTIN_WITHOUT_DEFAULT_DELEGATES`.
+
+**`ai-edge-litert` 2.1.4 applies no delegate at all** unless
+`experimental_default_delegate_latest_features=True` is passed. Every A1–A6
+measurement therefore ran on TFLite's reference kernels. Version matters: the
+2.1.6 build in A5's venv *does* delegate by default, which is why the QAT run
+printed `Created TensorFlow Lite XNNPACK delegate for CPU.` and nothing else did.
+
+**Latency, 8 threads, x86** (not a deployment measurement — Group B owns that):
+
+| model | no delegate | XNNPACK | speedup |
+|---|---|---|---|
+| fer_fp32 | 150.2 ms | 12.2 ms | 12× |
+| fer_dynrange | 337.6 ms | **216.2 ms** | **1.6×** |
+| fer_int8_full_perchannel | 600.6 ms | 8.3 ms | 72× |
+| ser_fp32 | 14.4 ms | 4.8 ms | 3× |
+| ser_dynrange | 337.2 ms | 2.6 ms | 130× |
+
+The 1.6× on FER dynamic range is the whole story in one number: XNNPACK's
+dynamic-range (hybrid) support does not cover depthwise convolutions, which is
+what EfficientNet-B0 mostly is, so those ops stay on reference kernels. SER's
+four plain Conv2Ds get the full 130×.
+
+#### A1/A6 on both paths
+
+| FER | XNNPACK | reference | Δ | agree w/ fp32 | ms |
+|---|---|---|---|---|---|
+| fp32 | 82.49 | 82.49 | +0.00 | — | 10.3 |
+| fp16 | 82.55 | 82.55 | +0.00 | 0.9995 | 12.4 |
+| dynrange | 82.80 | 82.44 | +0.36 | 0.9559 | 216.3 |
+| int8_full_perchannel | **71.82** | 61.24 | **+10.57** | 0.7505 | 7.7 |
+| int8_full_pertensor | 31.21 | 33.21 | −2.00 | 0.3537 | 7.8 |
+
+SER moves by at most 0.83 points on any format (4-class deployed: 70.83 / 70.83 /
+71.25 / 60.00 / 62.92), while running up to 130× faster. **The float formats are
+bit-identical across paths on both models** — fp32 reproduces 82.49% exactly —
+which is the control that proves the harness is sound and isolates the divergence
+to quantized graphs.
+
+Two consequences:
+
+- **A1's magnitude halves.** Full INT8 on FER costs **−10.68 points**, not
+  −21.25. Still a collapse worth reporting — nobody ships 71.82% when 82.80%
+  costs the same — but half the published figure was the fallback implementation.
+- **A6 strengthens.** The per-channel/per-tensor gap widens from 28.03 to
+  **40.61 points**, because the delegate rescues per-channel (+10.57) and mildly
+  penalises per-tensor (−2.00). "Per-channel is essential on FER" is a stronger
+  claim on the deployment path than on reference kernels.
+
+#### A4 on both paths
+
+| | mean | SD | min | max | spread |
+|---|---|---|---|---|---|
+| XNNPACK | 70.36 | 2.68 | 65.45 | 74.23 | **8.78** |
+| reference | 67.84 | 4.66 | 57.29 | 74.69 | 17.40 |
+
+**A4's finding halves but survives.** 8.8 points of calibration spread is still
+far too much to report a single full-INT8 number for FER, so "cite mean ± SD over
+seeds" stands — with the magnitude corrected.
+
+The correction is **not a uniform offset**: per-config deltas run from −1.95 to
++15.40 (mean +2.52). Every draw that scored below 63% on reference kernels gains
+3.9 to 15.4 points; draws above 72% mostly dip slightly. The reference path has a
+failure mode that badly-calibrated graphs trigger and the delegated path does not.
+A1's own build was the worst-hit config in the entire sweep (61.24 → 71.82), which
+is why the effect looked so dramatic when first measured on that one model. The
+effect concentrates at n=200, where block spread collapses from 14.68 to 3.70; no
+explanation is offered for that, because none was measured.
+
+#### A3 on both paths
+
+| k | MB | XNNPACK | reference |
+|---|---|---|---|
+| 3 | 4.891 | 72.18 | 63.19 |
+| 5 | 4.898 | **fails to prepare** | 63.14 |
+| 10 | 4.960 | 72.59 | 62.68 |
+| 15 | 5.210 | 72.18 | 62.83 |
+
+**A3's conclusion sharpens.** Against delegated full INT8 (71.82%), the best
+selective build buys **+0.77 points** — down from +1.95 — and the curve is flat to
+within 0.41 points across k = 3 to 15. Exempting five times as many layers changes
+nothing measurable, which states "the failure is distributed" more cleanly than
+the reference-kernel version did.
+
+It also adds a practical objection that did not exist before: **k=5 produces a
+graph XNNPACK accepts and then fails to prepare** (`Node number 255
+(TfLiteXNNPackDelegate) failed to prepare`), reproducibly across three runs. It
+executes fine on reference kernels. Selective quantization can therefore yield a
+model a deployment runtime refuses to run, and it is not predictable from k — k=10
+and k=15 exempt strictly more layers and prepare without complaint.
+
+#### A2 cannot be measured on the delegated path
+
+Not a gap in effort: `tf.lite.experimental.QuantizationDebugger` takes no delegate
+argument — it constructs its own interpreters internally — and delegation fuses
+away the intermediates it exists to read. Measured on
+`fer_int8_full_perchannel`: the reference graph exposes **484 tensors**, the
+delegated graph **415**. A forced version would profile a different, smaller layer
+set that could not be compared with the committed ranking.
+
+So A2's per-layer profile is inherently a reference-kernel measurement. That is a
+property of per-layer profiling on a fused execution path, and it should be stated
+in the paper rather than left for a reader to wonder about. Its practical role is
+unaffected: A2's ranking supplies A3's denylist, and A3 shows on both paths that
+those layers are not the cause.
+
+#### What this changes about the study
+
+The reference-kernel results are not wrong; they are measurements of TFLite's
+reference implementation. But the paper is about **deployment**, so the delegated
+numbers are the ones its claims should rest on. Both are committed —
+`quant_format_evaluation.json` and `quant_format_evaluation_xnnpack.json`, and
+likewise for A3 and A4 — and no committed reference-kernel number was overwritten
+in producing them.
+
+SER is unaffected throughout: every SER conclusion, including A5 and all McNemar
+tests, rests on predictions the delegate barely perturbs.
+
+---
+
 ## 8. Runtime characteristics
+
+> **Read this section knowing what §7.6 established.** Every number below was
+> measured with no delegate applied, which is why the ratios look pathological —
+> "quantization makes it 120× slower" and "28 threads is slower than 8" are both
+> the fallback path, not kernel cost. Under XNNPACK the same FER INT8 build runs
+> at 7.7 ms. The table is kept because it is what the study actually ran on, and
+> because the anomaly in it is what led to finding the delegate problem.
 
 Quantized EfficientNet-B0 falls back to slow reference kernels on x86:
 
@@ -640,7 +814,14 @@ with graph simplification made no difference (245 ops either way), so this is
 intrinsic to the quantized depthwise/SE kernels, not graph bloat.
 
 **None of this is a deployment result** — x86 latency is meaningless for an
-edge claim and belongs to Group B on the Pi. It only shapes how the study is run:
+edge claim and belongs to Group B on the Pi. **Group B must check the delegate
+before it measures anything**: if the Pi's runtime behaves like litert 2.1.4 and
+applies no delegate, it will reproduce this pathology, conclude dynamic range is
+unusably slow, and recommend against the format the paper recommends. Confirm the
+`Created TensorFlow Lite XNNPACK delegate for CPU.` line appears, and report which
+runtime build and version produced every latency number.
+
+Latency aside, the delegate only shapes how the study is run:
 `quant_02` caches per-format predictions keyed by the `.tflite` mtime and size,
 so formats can be computed in parallel processes and merged by a final pass.
 
@@ -650,12 +831,12 @@ so formats can be computed in parallel processes and merged by a final pass.
 
 | Item | State |
 |---|---|
-| A1 | **complete**, both models |
-| A2 | **complete**, both models |
-| A3 | **complete**, both models |
-| A4 | **complete**, both models |
+| A1 | **complete**, both models, **both execution paths** |
+| A2 | **complete**, both models — reference kernels only, and necessarily so (§7.6) |
+| A3 | **complete**, both models; FER also on the delegated path |
+| A4 | **complete**, both models; FER also on the delegated path |
 | A5 | **complete** for SER (isolated venv); FER QAT is the open decision |
-| A6 | **complete**, both models — included in A1 |
+| A6 | **complete**, both models, both paths — included in A1 |
 
 Nothing was reported as done that was not measured. **Every item A1–A6 is now
 run**, on both models except A5, which exists only for SER: QAT on FER would mean
@@ -663,7 +844,7 @@ rebuilding EfficientNet-B0 in Keras and retraining (1–2 weeks). That is an ope
 decision rather than a queued task, and §7's A5 section argues it is a reasonable
 bet rather than a settled one.
 
-Three things a follow-on study should pick up, all stated where they arise:
+Five things a follow-on study should pick up, all stated where they arise:
 
 1. **The QAT confound** — a float model fine-tuned for the same 15 epochs and
    then post-training quantized would separate quantization-awareness from extra
@@ -674,6 +855,15 @@ Three things a follow-on study should pick up, all stated where they arise:
 3. **Early stopping's leaky validation split** in `quant_06` — augmented copies of
    one clip land on both sides of it. It never touches the frozen test set, but a
    speaker-disjoint validation carve would make the stopping point honest.
+4. **The delegated McNemar tests.** §7.5's paired tests use reference-kernel
+   predictions. `_xnn` caches now exist for every format, so re-running
+   `quant_07` + `mcnemar_compare.py` with `QUANT_XNNPACK=1` would put the
+   significance claims on the deployment path. A6's gap widens to 40.61 points
+   there, so the conclusion will not change, but the numbers quoted should match
+   the path they are quoted from. ~2 minutes.
+5. **SER on the delegated path for A3/A4.** Only FER was re-run, because SER's
+   A1 accuracies move by at most 0.83 points. That is an argument, not a
+   measurement.
 
 ---
 
@@ -694,6 +884,21 @@ python quant/quant_04_calibration_sensitivity.py --model fer    # A4, ~6.5 h
 The FER sweep checkpoints each config to
 `artifacts/results/quant_calibration_partial_fer.json`; re-running the same
 command resumes from there, and `--restart` discards it.
+
+To reproduce the delegated path (§7.6), set `QUANT_XNNPACK=1` for any of the
+above, or run the dedicated A1/A6 script:
+
+```bash
+python quant/quant_08_xnnpack_formats.py --model both   # A1/A6, both models
+QUANT_XNNPACK=1 python quant/quant_05_selective_quant.py --model fer --ks 3 5 10 15
+QUANT_XNNPACK=1 python quant/quant_04_calibration_sensitivity.py --model fer --restart
+```
+
+`--restart` is not optional on that last one: the resume cache holds
+reference-kernel configs and must not be mixed with delegated ones. The scripts
+write to the same filenames on both paths, so back up (or rename) the
+reference-kernel result first — the committed copies in `outputs/quant/` are the
+safety net either way.
 
 See `GROUP_A.md` for the parallel-execution recipe and the A5 isolated-venv
 command.
@@ -717,3 +922,6 @@ command.
 | `e733f32` | A4 (FER) results; the 17.4-point calibration spread that qualifies A1's headline number |
 | `9c4727f` | A3 (FER) written up here and in the runbook |
 | `adfd511` | A5 (QAT, SER) results; `tfmot` BatchNorm fix; QAT added to the paired tests |
+| `0d0c530` | REPORT brought up to date with the completed study |
+| `46acd09` | Four overclaims corrected ("to the digit", the Δ sign convention, "preserves behaviour", the leaky-split disclosure) |
+| *this* | §7.6 — the XNNPACK execution-path finding; A1/A6, A3, A4 re-run delegated; `quant_08`; cache keys made path-aware |

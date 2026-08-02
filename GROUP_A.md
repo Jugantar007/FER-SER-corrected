@@ -416,6 +416,47 @@ SER is a four-conv CNN losing 11.25 points to PTQ; FER is EfficientNet-B0 whose
 failure A2/A3 showed to be distributed across the network. Encouraging, not
 conclusive.
 
+### Execution path — read this before citing any quantized number
+
+`ai-edge-litert` 2.1.4 applies **no delegate unless asked**, so every A1–A6
+measurement ran on TFLite's **reference kernels**, not the XNNPACK path a
+deployment runtime uses. Enable it with
+`experimental_default_delegate_latest_features=True`, or set `QUANT_XNNPACK=1`
+and run any script unchanged. Version matters: litert **2.1.6 delegates by
+default**, 2.1.4 does not.
+
+Float formats are unaffected — FP32 reproduces 82.49% on both paths. Quantized
+graphs are not:
+
+| FER | XNNPACK | reference | ms (xnn) |
+|---|---|---|---|
+| dynrange | 82.80 | 82.44 | 216.3 |
+| int8_full_perchannel | **71.82** | 61.24 | 7.7 |
+| int8_full_pertensor | 31.21 | 33.21 | 7.8 |
+
+SER moves ≤0.83 points on any format while running up to 130× faster.
+
+What changes, in one line each:
+
+- **A1**: the FER INT8 penalty is −10.7 points, not −21.25.
+- **A6**: the per-channel/per-tensor gap *widens*, 28.03 → 40.61 points.
+- **A4**: calibration spread halves, 17.40 → 8.78 points — still large enough
+  that a single number should not be cited.
+- **A3**: the best selective build buys +0.77 points over full INT8, down from
+  +1.95; and k=5 produces a graph XNNPACK **refuses to prepare**.
+- **A2**: cannot be re-run delegated. `QuantizationDebugger` takes no delegate
+  argument and delegation fuses away the intermediates it reads (484 tensors →
+  415). Per-layer profiling is inherently a reference-kernel measurement.
+
+**Group B must verify the delegate on the Pi before measuring anything.** If the
+Pi's runtime behaves like 2.1.4, it will reproduce the fallback pathology,
+conclude dynamic range is unusably slow, and recommend against the format this
+paper recommends. Check for `Created TensorFlow Lite XNNPACK delegate for CPU.`
+and record the runtime build with every latency number.
+
+Delegated results are committed as `*_xnnpack.json` beside the reference ones.
+Prediction caches carry an `_xnn` suffix and are **not** interchangeable.
+
 ### Paired significance tests (McNemar)
 
 Every format is evaluated on the **same** test samples, so the comparison is

@@ -249,6 +249,14 @@ import os as _os
 DEFAULT_THREADS = int(_os.environ.get("QUANT_NUM_THREADS", min(8, _os.cpu_count() or 4)))
 
 
+# ai-edge-litert 2.1.4 applies NO delegate unless asked, so quantized graphs run
+# TFLite's reference kernels -- which is not what a deployment runtime does. On
+# FER that is worth +10.6 points and ~80x speed on full INT8. Set QUANT_XNNPACK=1
+# to evaluate on the delegated path instead. Results from the two paths are NOT
+# interchangeable; keep them in separate files.
+USE_XNNPACK = _os.environ.get("QUANT_XNNPACK", "0") == "1"
+
+
 def _interpreter(model_path=None, model_content=None, num_threads=None):
     """Prefer LiteRT when available; tf.lite.Interpreter is deprecated but works."""
     try:
@@ -256,9 +264,23 @@ def _interpreter(model_path=None, model_content=None, num_threads=None):
     except Exception:
         from tensorflow.lite import Interpreter
     nt = num_threads or DEFAULT_THREADS
+    kw = {"num_threads": nt}
+    if USE_XNNPACK:
+        kw["experimental_default_delegate_latest_features"] = True
     if model_content is not None:
-        return Interpreter(model_content=model_content, num_threads=nt)
-    return Interpreter(model_path=str(model_path), num_threads=nt)
+        return Interpreter(model_content=model_content, **kw)
+    return Interpreter(model_path=str(model_path), **kw)
+
+
+class DelegatePrepareError(RuntimeError):
+    """XNNPACK accepted the graph then failed to prepare its runtime.
+
+    Seen on one selective (mixed-precision) FER build: k=5 fails at node 255
+    while k=3, k=10 and k=15 prepare fine. Raised as its own type so callers can
+    record "this build does not run on the deployment path" instead of crashing
+    -- and so it is never silently downgraded to a reference-kernel run, which
+    would mix execution paths inside one result file.
+    """
 
 
 def run_tflite(model, X, desc="", progress=True, num_threads=None):
@@ -271,7 +293,12 @@ def run_tflite(model, X, desc="", progress=True, num_threads=None):
         interp = _interpreter(model_content=bytes(model), num_threads=num_threads)
     else:
         interp = _interpreter(model_path=model, num_threads=num_threads)
-    interp.allocate_tensors()
+    try:
+        interp.allocate_tensors()
+    except RuntimeError as e:
+        if USE_XNNPACK and ("XNNPACK" in str(e) or "delegate" in str(e).lower()):
+            raise DelegatePrepareError(f"{desc or model}: {e}") from e
+        raise
     inp, out = interp.get_input_details()[0], interp.get_output_details()[0]
 
     n = len(X)
