@@ -924,4 +924,4 @@ command.
 | `adfd511` | A5 (QAT, SER) results; `tfmot` BatchNorm fix; QAT added to the paired tests |
 | `0d0c530` | REPORT brought up to date with the completed study |
 | `46acd09` | Four overclaims corrected ("to the digit", the Δ sign convention, "preserves behaviour", the leaky-split disclosure) |
-| *this* | §7.6 — the XNNPACK execution-path finding; A1/A6, A3, A4 re-run delegated; `quant_08`; cache keys made path-aware |
+| `fd067b4` | §7.6 — the XNNPACK execution-path finding; A1/A6, A3, A4 re-run delegated; `quant_08`; cache keys made path-aware |
