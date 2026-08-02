@@ -4,12 +4,28 @@ Implementation of `README_GroupA.md` (items A1–A6) for *"Verification-Driven
 Post-Training Quantization of Deep Emotion Recognition Models for Raspberry Pi
 Deployment"* (Sensua, Ahirwar, Kaur).
 
-**Date:** 2026-07-31 · **Machine:** RTX 4060 workstation, Windows 11, Python 3.10,
-TensorFlow 2.21.0, torch 2.6.0+cu124, onnx2tf 1.28.8
+**Started:** 2026-07-31 · **Completed:** 2026-08-02 · **Machine:** RTX 4060
+workstation, Windows 11, Python 3.10, TensorFlow 2.21.0, torch 2.6.0+cu124,
+onnx2tf 1.28.8
 
 This is the narrative record: what was found, what was decided and why, what
 broke, and what the numbers came out as. `GROUP_A.md` is the runbook; this is the
 account of getting there.
+
+**All six items are run.** The four findings the paper should carry:
+
+1. **Dynamic range is the deployment answer** on both models — baseline accuracy
+   at ~4× compression, and a *tested* non-difference from FP32 (p = 1.0), not
+   merely an overlapping interval.
+2. **Full INT8 collapses**, and on FER the size of that collapse is not a fixed
+   quantity: it spans 17.4 points across 18 calibration draws, so A1's −21.25
+   should be cited as mean ± SD, not as the number (§7, A4).
+3. **The collapse is distributed, not localised.** A2 finds the largest error in
+   the squeeze-and-excitation pools; A3 shows exempting those layers recovers
+   almost nothing (§7, A3).
+4. **QAT fixes it on SER** — indistinguishable from FP32 at INT8 size — but
+   dynamic range already achieves that in less space, so QAT matters only for
+   targets that cannot run float activations at all (§7, A5).
 
 ---
 
@@ -227,12 +243,14 @@ hypergeometric p-value rather than an arbitrary multiplier, primarily over the
 layers above the sensitivity threshold — the paper's own definition of
 "sensitive" — and secondarily over the top-k.
 
-**A5 — SER first, and not run here.** Option 3 from the README. Implemented, and
-everything up to the `tfmot` call is verified. Not executed because
-`tensorflow-model-optimization` 0.8.1 pins `absl-py~=1.2` and installing it would
-**downgrade absl-py from 2.x in the environment every other Group A item depends
-on**. An isolated-venv command is documented instead. This was a deliberate
-refusal to risk the working environment for one item.
+**A5 — SER first, in an isolated environment.** Option 3 from the README. It was
+deliberately not run in the main environment: `tensorflow-model-optimization`
+0.8.1 pins `absl-py~=1.2`, and installing it would **downgrade absl-py from 2.x
+in the environment every other Group A item depends on**. It was run instead in a
+dedicated `.venv-qat`, and the main environment was checked afterwards — still
+absl-py 2.4.0 and TensorFlow 2.21.0, so the downgrade stayed contained. Results
+in §7; the two defects that surfaced when the `tfmot` call was finally reached
+are in §4.3.
 
 **Rules enforced in code, not assumed.** `EXPECTED_N_TEST` (1948 FER / 240 SER)
 is asserted by `check_frozen()` in every evaluating script; FER splits are proven
@@ -609,8 +627,23 @@ so formats can be computed in parallel processes and merged by a final pass.
 | A5 | **complete** for SER (isolated venv); FER QAT is the open decision |
 | A6 | **complete**, both models — included in A1 |
 
-Nothing was reported as done that was not measured. The outstanding items are
-outstanding because of compute cost or environment risk, both stated above.
+Nothing was reported as done that was not measured. **Every item A1–A6 is now
+run**, on both models except A5, which exists only for SER: QAT on FER would mean
+rebuilding EfficientNet-B0 in Keras and retraining (1–2 weeks). That is an open
+decision rather than a queued task, and §7's A5 section argues it is a reasonable
+bet rather than a settled one.
+
+Three things a follow-on study should pick up, all stated where they arise:
+
+1. **The QAT confound** — a float model fine-tuned for the same 15 epochs and
+   then post-training quantized would separate quantization-awareness from extra
+   training. ~25 minutes.
+2. **The A4 seed count** — three seeds per block is enough to show the spread is
+   large but too few to estimate per-block SDs, which is why the "variance shrinks
+   at n=500" reading was left unclaimed.
+3. **Early stopping's leaky validation split** in `quant_06` — augmented copies of
+   one clip land on both sides of it. It never touches the frozen test set, but a
+   speaker-disjoint validation carve would make the stopping point honest.
 
 ---
 
@@ -646,3 +679,11 @@ command.
 | `9e41b42` | README Group A section |
 | `2efd9cc` | A2 squeeze-and-excitation test made structural, with hypergeometric enrichment |
 | `9f42133` | Results for A1, A6, A2 (both models), A3 (SER) published to `outputs/quant/` |
+| `a50be52` | This report; A4 (SER) calibration results |
+| `9c94a2f` | McNemar paired tests; the SER per-channel/per-tensor claim withdrawn |
+| `e99e742` | `quant_05` reuses `quant_02`'s prediction cache |
+| `8721ede` | A3 (FER) selective quantization results |
+| `77f229c` | A4's sweep made resumable — each config checkpointed, so a 6.5 h run survives interruption |
+| `e733f32` | A4 (FER) results; the 17.4-point calibration spread that qualifies A1's headline number |
+| `9c4727f` | A3 (FER) written up here and in the runbook |
+| `adfd511` | A5 (QAT, SER) results; `tfmot` BatchNorm fix; QAT added to the paired tests |
