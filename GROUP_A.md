@@ -42,7 +42,7 @@ splits. It is the bridge, and it verifies the wiring rather than assuming it.
 | A2 | `quant_03_layerwise_debug.py` | implemented, run |
 | A3 | `quant_05_selective_quant.py` | implemented, run |
 | A4 | `quant_04_calibration_sensitivity.py` | implemented, variable corrected, run on both models |
-| A5 | `quant_06_qat_ser.py` | implemented, **not run** — needs an isolated env, see below |
+| A5 | `quant_06_qat_ser.py` | implemented, run on SER in an isolated env, see below |
 | A6 | both `int8_full_*` variants in `quant_01`/`quant_02` | implemented, run |
 
 ---
@@ -173,23 +173,28 @@ Because `tfmot` targets Keras 2, the script sets `TF_USE_LEGACY_KERAS=1` and
 rebuilds the architecture layer-for-layer, transferring the checkpoint's weights
 and **verifying they reproduce the published baseline before training starts**.
 
-> **A5 has not been run, deliberately.** `tensorflow-model-optimization` 0.8.1
-> pins `absl-py~=1.2`, so installing it into the workstation environment would
-> downgrade absl-py from 2.x and put the working TensorFlow 2.21 install — the
-> one every other Group A item depends on — at risk. Run A5 in an isolated
-> environment instead:
+> **A5 runs in its own venv, never the main one.** `tensorflow-model-optimization`
+> 0.8.1 pins `absl-py~=1.2`, so installing it into the workstation environment
+> would downgrade absl-py from 2.x and put the working TensorFlow 2.21 install —
+> the one every other Group A item depends on — at risk. The venv used for the
+> committed result:
 >
 > ```bash
-> uv venv .venv-qat --python 3.10
-> .venv-qat/Scripts/pip install -r requirements-quant.txt
-> .venv-qat/Scripts/python quant/quant_06_qat_ser.py --epochs 15
+> # uv was not on PATH on this machine; python -m venv is equivalent here
+> "$PY310" -m venv .venv-qat
+> .venv-qat/Scripts/python -m pip install "tensorflow==2.21.*" tf-keras \
+>     tensorflow-model-optimization scikit-learn matplotlib h5py ai-edge-litert
+> .venv-qat/Scripts/python quant/quant_06_qat_ser.py --epochs 15   # ~20 min
 > ```
 >
-> Everything in the script up to the `tfmot` call has been executed and verified:
-> the Keras-2 rebuild plus `load_baseline_weights()` reproduces the published
-> baseline **exactly** (60.83% 8-class / 70.83% 4-class). Only the QAT training
-> run itself is outstanding. The baseline check runs before training, so the
-> script fails loudly rather than fine-tuning from wrong weights.
+> That is a deliberately lean subset of `requirements-quant.txt`: A5 touches no
+> torch, onnx2tf or librosa, and installing the full file downloads ~3 GB it
+> never uses. **`ai-edge-litert` is not optional here** — TF 2.21 removed
+> `tf.lite.Interpreter`, so `common._interpreter`'s fallback no longer exists and
+> evaluation dies *after* training completes if it is missing.
+>
+> Confirmed after installing: the main environment still has absl-py 2.4.0 and
+> TensorFlow 2.21.0. The downgrade stayed inside the venv.
 
 **Frozen test sets are enforced, not assumed.** `config.EXPECTED_N_TEST` holds
 1948 (FER) and 240 (SER); `check_frozen()` aborts on any mismatch, per rule 1.
@@ -378,6 +383,39 @@ n50-balanced and n200-balanced), so a seed that looks repeatedly bad is
 coincidence. And the balanced condition takes `n // 4` per class, so **"n=50"
 means 48 images**; n=200 and n=500 are exact.
 
+### A5 — quantization-aware training, SER
+
+15 epochs fine-tuned from the corrected checkpoint (lr 1e-4), architecture
+unchanged, evaluated on the frozen 240-sample test set.
+
+| format | 8-class | 4-class | MB |
+|---|---|---|---|
+| fp32 | 0.6083 | 0.7083 | 1.701 |
+| dynrange | 0.6042 | 0.7125 | 0.446 |
+| int8_full_perchannel (PTQ) | 0.5083 | 0.5958 | 0.449 |
+| **qat_int8** | **0.6042** | **0.7000** | **0.452** |
+
+**QAT recovers full INT8**, and the paired tests back it: +10.42 points over PTQ
+per-channel (p_Holm = 0.0014) and a tested non-difference from FP32 (p_Holm =
+1.0), consistent on the 8-class view. Group A's first positive result.
+
+The deployment reading is narrower than the headline. Dynamic range already sits
+at baseline in 0.446 MB, so QAT is not the recommendation for ordinary CPU
+targets. Its value is that it is the only build here that is *fully integer* and
+accurate — for an NPU or MCU that cannot run float activations, dynamic range is
+not an option and QAT is.
+
+Caveats, all in REPORT.md §7: QAT got 15 epochs PTQ did not (the evidence argues
+the gain is quantization-awareness, since QAT lands below the float baseline
+rather than above it, but the strict control was not run), and early stopping
+used a validation split with augmentation leakage, which affects only the
+stopping point, not the reported test number.
+
+Whether to rebuild FER in Keras for QAT (1–2 weeks) is **not settled** by this.
+SER is a four-conv CNN losing 11.25 points to PTQ; FER is EfficientNet-B0 whose
+failure A2/A3 showed to be distributed across the network. Encouraging, not
+conclusive.
+
 ### Paired significance tests (McNemar)
 
 Every format is evaluated on the **same** test samples, so the comparison is
@@ -423,9 +461,9 @@ disagree on 70% of samples. They are not minor variants of each other.
 
 | Item | State |
 |---|---|
-| A5 | implemented, not run — needs the isolated venv described above |
+| A5 (FER) | not attempted — needs EfficientNet-B0 rebuilt in Keras, 1–2 weeks |
 
-A3 (FER) and A4 (FER) are both complete; see REPORT.md §7. A4-FER took 6 h 33 min
+A3 (FER), A4 (FER) and A5 (SER) are all complete; see REPORT.md §7. A4-FER took 6 h 33 min
 wall clock, not the 21 h estimated here — ~20 min per config at the default 8
 threads. It checkpoints each config, so an interrupted sweep resumes on re-run.
 

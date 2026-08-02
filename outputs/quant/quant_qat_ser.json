@@ -1,0 +1,278 @@
+{
+  "model": "ser",
+  "method": "quantization-aware training (tfmot)",
+  "epochs_requested": 15,
+  "epochs_run": 15,
+  "learning_rate": 0.0001,
+  "architecture": "unchanged from the corrected notebook",
+  "qat_init": "fine-tuned from the corrected checkpoint",
+  "validation_source": "carved from TRAIN actors only",
+  "float_baseline_4class": 0.7083333333333334,
+  "qat_int8_8class": {
+    "n_samples": 240,
+    "accuracy": 0.6041666666666666,
+    "balanced_accuracy": 0.578125,
+    "macro_f1": 0.5634744509215509,
+    "weighted_f1": 0.5810394143163209,
+    "cohen_kappa": 0.543854033290653,
+    "per_class": {
+      "neutral": {
+        "precision": 0.75,
+        "recall": 0.1875,
+        "f1": 0.3,
+        "support": 16
+      },
+      "calm": {
+        "precision": 0.5333333333333333,
+        "recall": 0.75,
+        "f1": 0.6233766233766234,
+        "support": 32
+      },
+      "happy": {
+        "precision": 0.4642857142857143,
+        "recall": 0.40625,
+        "f1": 0.43333333333333335,
+        "support": 32
+      },
+      "sad": {
+        "precision": 0.3103448275862069,
+        "recall": 0.28125,
+        "f1": 0.29508196721311475,
+        "support": 32
+      },
+      "angry": {
+        "precision": 0.78125,
+        "recall": 0.78125,
+        "f1": 0.78125,
+        "support": 32
+      },
+      "fearful": {
+        "precision": 0.8571428571428571,
+        "recall": 0.375,
+        "f1": 0.5217391304347826,
+        "support": 32
+      },
+      "disgust": {
+        "precision": 0.6904761904761905,
+        "recall": 0.90625,
+        "f1": 0.7837837837837838,
+        "support": 32
+      },
+      "surprised": {
+        "precision": 0.6521739130434783,
+        "recall": 0.9375,
+        "f1": 0.7692307692307693,
+        "support": 32
+      }
+    },
+    "confusion_matrix": [
+      [
+        3,
+        3,
+        4,
+        4,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        24,
+        0,
+        6,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        4,
+        13,
+        3,
+        1,
+        2,
+        0,
+        9
+      ],
+      [
+        0,
+        12,
+        2,
+        9,
+        2,
+        0,
+        7,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        25,
+        0,
+        2,
+        4
+      ],
+      [
+        0,
+        2,
+        4,
+        7,
+        2,
+        12,
+        2,
+        3
+      ],
+      [
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        29,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        30
+      ]
+    ],
+    "class_names": [
+      "neutral",
+      "calm",
+      "happy",
+      "sad",
+      "angry",
+      "fearful",
+      "disgust",
+      "surprised"
+    ],
+    "macro_auc_ovr": null,
+    "accuracy_mean": 0.6050104166666668,
+    "ci95_low": 0.5416666666666666,
+    "ci95_high": 0.6666666666666666
+  },
+  "qat_int8_4class": {
+    "n_samples": 240,
+    "accuracy": 0.7,
+    "balanced_accuracy": 0.6966145833333334,
+    "macro_f1": 0.6854153188701291,
+    "weighted_f1": 0.6884979896126738,
+    "cohen_kappa": 0.5983637039791744,
+    "per_class": {
+      "Neutral": {
+        "precision": 0.6326530612244898,
+        "recall": 0.6458333333333334,
+        "f1": 0.6391752577319587,
+        "support": 48
+      },
+      "Happy": {
+        "precision": 0.7066666666666667,
+        "recall": 0.828125,
+        "f1": 0.762589928057554,
+        "support": 64
+      },
+      "Sad": {
+        "precision": 0.6666666666666666,
+        "recall": 0.4375,
+        "f1": 0.5283018867924528,
+        "support": 64
+      },
+      "Angry": {
+        "precision": 0.7567567567567568,
+        "recall": 0.875,
+        "f1": 0.8115942028985508,
+        "support": 64
+      }
+    },
+    "confusion_matrix": [
+      [
+        31,
+        5,
+        9,
+        3
+      ],
+      [
+        4,
+        53,
+        5,
+        2
+      ],
+      [
+        14,
+        9,
+        28,
+        13
+      ],
+      [
+        0,
+        8,
+        0,
+        56
+      ]
+    ],
+    "class_names": [
+      "Neutral",
+      "Happy",
+      "Sad",
+      "Angry"
+    ],
+    "macro_auc_ovr": null,
+    "accuracy_mean": 0.7011166666666667,
+    "ci95_low": 0.6416666666666667,
+    "ci95_high": 0.7583333333333333
+  },
+  "comparison": {
+    "fp32": {
+      "accuracy_8class": 0.6083333333333333,
+      "accuracy_4class": 0.7083333333333334,
+      "size_mb": 1.701
+    },
+    "dynrange": {
+      "accuracy_8class": 0.6041666666666666,
+      "accuracy_4class": 0.7125,
+      "size_mb": 0.446
+    },
+    "int8_full_perchannel": {
+      "accuracy_8class": 0.5083333333333333,
+      "accuracy_4class": 0.5958333333333333,
+      "size_mb": 0.449
+    },
+    "int8_full_pertensor": {
+      "accuracy_8class": 0.5208333333333334,
+      "accuracy_4class": 0.625,
+      "size_mb": 0.434
+    },
+    "qat_int8": {
+      "accuracy_8class": 0.6041666666666666,
+      "accuracy_4class": 0.7,
+      "size_mb": 0.452
+    }
+  },
+  "verdict": "QAT INT8 reaches 70.00% 4-class vs PTQ INT8 59.58% (+10.42 points) against an FP32 baseline of 70.83%. QAT recovers full INT8 -- worth rebuilding FER in Keras (option 1).",
+  "_environment": {
+    "timestamp": "2026-08-02T09:31:27",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.4",
+    "torch": null,
+    "librosa": null,
+    "sklearn": "1.7.2",
+    "onnx2tf": null,
+    "onnxruntime": null
+  }
+}

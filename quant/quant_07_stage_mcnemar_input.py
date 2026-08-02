@@ -108,6 +108,25 @@ def stage(out_root):
         staged_ser.append(fmt)
         log.info("ser/%-22s 8-class %.4f | 4-class %.4f  <- %s", fmt,
                  (P8.argmax(1) == y8).mean(), (P4.argmax(1) == y4).mean(), src.name)
+    # ---- A5's QAT build, if it has been produced -----------------------
+    # quant_06 evaluates in its own process and does not write a prediction
+    # cache, so its probabilities are recomputed here (240 samples, seconds).
+    # Without this the QAT-vs-PTQ claim would rest on marginal CIs, which is
+    # exactly the mistake mcnemar_compare.py exists to prevent.
+    qat = C.MODELS / "ser_qat_int8.tflite"
+    if qat.exists():
+        from common import run_tflite
+        Xte = np.load(C.CACHE / "ser_test.npz")["X"].astype(np.float32) / 255.0
+        P8 = run_tflite(qat, Xte, "ser/qat_int8")
+        P4 = four_class_summation(P8)
+        np.save(raw / "ser_qat_int8_probs.npy", P8)
+        np.save(dep / "ser_qat_int8_probs.npy", P4)
+        staged_ser.append("qat_int8")
+        log.info("ser/%-22s 8-class %.4f | 4-class %.4f  <- %s", "qat_int8",
+                 (P8.argmax(1) == y8).mean(), (P4.argmax(1) == y4).mean(), qat.name)
+    else:
+        log.info("no QAT build staged (run quant_06_qat_ser.py for A5)")
+
     manifest["views"]["ser_8class"] = {"dir": "raw", "n": int(len(y8)),
                                        "formats": staged_ser, "classes": C.EMOTION8}
     manifest["views"]["ser_4class_summation"] = {

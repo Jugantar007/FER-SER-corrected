@@ -4,16 +4,21 @@
 \hline
 Format A & Format B & Acc A & Acc B & $\Delta$ & $p_{\mathrm{Holm}}$ & Sig. \\
 \hline
-fp32 & fp16 & 60.83 & 60.83 & +0.00 & 1.00e+00 & ns \\
-fp32 & dynrange & 60.83 & 60.42 & +0.42 & 1.00e+00 & ns \\
-fp32 & int8 full perchannel & 60.83 & 50.83 & +10.00 & 1.26e-03 & ** \\
-fp32 & int8 full pertensor & 60.83 & 52.08 & +8.75 & 7.06e-03 & ** \\
-fp16 & dynrange & 60.83 & 60.42 & +0.42 & 1.00e+00 & ns \\
-fp16 & int8 full perchannel & 60.83 & 50.83 & +10.00 & 1.26e-03 & ** \\
-fp16 & int8 full pertensor & 60.83 & 52.08 & +8.75 & 7.06e-03 & ** \\
-dynrange & int8 full perchannel & 60.42 & 50.83 & +9.58 & 1.60e-03 & ** \\
-dynrange & int8 full pertensor & 60.42 & 52.08 & +8.33 & 7.06e-03 & ** \\
-int8 full perchannel & int8 full pertensor & 50.83 & 52.08 & -1.25 & 1.00e+00 & ns \\
+fp32 & fp16 & 70.83 & 70.83 & +0.00 & 1.00e+00 & ns \\
+fp32 & dynrange & 70.83 & 71.25 & -0.42 & 1.00e+00 & ns \\
+fp32 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 2.68e-04 & *** \\
+fp32 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 1.12e-02 & * \\
+fp32 & qat int8 & 70.83 & 70.00 & +0.83 & 1.00e+00 & ns \\
+fp16 & dynrange & 70.83 & 71.25 & -0.42 & 1.00e+00 & ns \\
+fp16 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 2.68e-04 & *** \\
+fp16 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 1.12e-02 & * \\
+fp16 & qat int8 & 70.83 & 70.00 & +0.83 & 1.00e+00 & ns \\
+dynrange & int8 full perchannel & 71.25 & 59.58 & +11.67 & 2.72e-05 & *** \\
+dynrange & int8 full pertensor & 71.25 & 62.50 & +8.75 & 1.42e-03 & ** \\
+dynrange & qat int8 & 71.25 & 70.00 & +1.25 & 1.00e+00 & ns \\
+int8 full perchannel & int8 full pertensor & 59.58 & 62.50 & -2.92 & 2.73e-01 & ns \\
+int8 full perchannel & qat int8 & 59.58 & 70.00 & -10.42 & 1.42e-03 & ** \\
+int8 full pertensor & qat int8 & 62.50 & 70.00 & -7.50 & 4.66e-02 & * \\
 \hline
 \end{tabular}
 \end{table}

@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+# A5's isolated QAT environment (see GROUP_A.md) -- ~1 GB, rebuildable
+.venv-qat/
 
 # Jupyter
 .ipynb_checkpoints/

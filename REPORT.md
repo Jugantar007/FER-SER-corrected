@@ -170,6 +170,34 @@ This was caught only because `quant_06` verifies the transfer against the
 published number *before* training. Without that guard, QAT would have
 fine-tuned from noise and produced a meaningless A5 result.
 
+### 4.3 `quantize_model()` cannot wrap this architecture at all
+
+Found when A5 was finally run. `tfmot.quantization.keras.quantize_model()`
+raises on every `BatchNormalization` layer in the SER net:
+
+```
+RuntimeError: Layer batch_normalization:<BatchNormalization> is not supported.
+```
+
+tfmot only handles BN fused into a preceding Conv2D. The corrected architecture
+puts the ReLU *inside* the convolution — `Conv2D(..., activation="relu")` — and
+BN after it, so no BN in this model is fusable. The obvious fix, reordering to
+Conv → BN → ReLU, is a different network and rule 3 forbids it.
+
+Instead each layer is annotated individually and BN gets an explicit
+`QuantizeConfig` that quantizes its output to 8 bits and leaves gamma/beta in
+float, then `quantize_apply()` builds the model. Verified before use: the wrapped
+model keeps the transferred weights (checked on a toy net with distinctive
+weights, then on the real model), and the converted graph contains int8 tensors.
+
+A second guard was added at the same time, because the first one nearly misfired.
+After `quantize_apply()` but before fine-tuning, the model scores **26.67%**
+4-class — the same number §4.2's bug produced, and easy to mistake for it. It is
+not a bug: tfmot's `MovingAverageQuantizer` starts with default activation ranges
+that clamp everything until training adapts them, and one epoch restores full
+accuracy. The script now logs this checkpoint explicitly so the two failure modes
+are distinguishable.
+
 ---
 
 ## 5. Decisions
@@ -419,6 +447,72 @@ so a seed that looks consistently bad is coincidence, not a property of the seed
 And in the balanced condition the code takes `n // 4` per class, so the **"n=50"
 rows use 48 images**, not 50; n=200 and n=500 divide evenly and are exact.
 
+### A5 — quantization-aware training, SER
+
+Fine-tuned from the corrected checkpoint for 15 epochs (lr 1e-4, batch 32,
+validation carved from TRAIN actors only), in an isolated venv. The rebuilt
+Keras-2 model reproduced the published baseline exactly before training —
+8-class 0.6083, 4-class 0.7083 — so QAT started from the right weights.
+
+| format | 8-class | 4-class | MB |
+|---|---|---|---|
+| fp32 | 0.6083 | 0.7083 | 1.701 |
+| dynrange | 0.6042 | 0.7125 | 0.446 |
+| int8_full_perchannel (PTQ) | 0.5083 | 0.5958 | 0.449 |
+| **qat_int8** | **0.6042** | **0.7000** | **0.452** |
+
+Paired McNemar on the deployed 4-class view, Holm-corrected:
+
+| comparison | Δ acc | b / c | p_Holm | |
+|---|---|---|---|---|
+| qat_int8 vs int8_full_perchannel | **+10.42** | 32 / 7 | 0.00142 | significant |
+| qat_int8 vs fp32 | −0.83 | 5 / 7 | 1.0 | tested non-difference |
+| qat_int8 vs dynrange | −1.25 | 6 / 9 | 1.0 | tested non-difference |
+
+The 8-class view agrees (+9.58 vs PTQ, p_Holm = 0.0095; +0.42 vs FP32, p_Holm =
+1.0), so the conclusion does not depend on which view is taken.
+
+**QAT recovers full INT8 on SER.** It is statistically indistinguishable from
+FP32 at a quarter of FP32's size, and beats post-training full INT8 by a
+significant margin. This is the first positive result in Group A.
+
+**But read the deployment consequence carefully.** Dynamic range already matches
+the baseline at 0.446 MB — smaller than the QAT build and 1.25 points better on
+the 4-class view (untested difference). So QAT is *not* the recommendation for
+ordinary CPU deployment; dynamic range remains that, and it costs nothing to
+produce. QAT's value is specific: it is the only build here that is fully
+integer *and* accurate, which matters when the target cannot execute float
+activations at all — an NPU or microcontroller path where dynamic range is not
+an option. State it that way, not as "QAT is better."
+
+Three limitations, none of which touch the frozen test set:
+
+1. **The comparison carries a confound.** QAT received 15 epochs of fine-tuning
+   that PTQ did not, so part of +10.42 could in principle be extra training
+   rather than quantization awareness. The evidence argues against that reading —
+   QAT ends at 70.00%, *below* the 70.83% float baseline, so the extra epochs
+   did not make a better model, they made a model that survives quantization.
+   A strict control (fine-tune the float model 15 epochs, then PTQ it) was not
+   run and would settle it.
+2. **Early stopping used a leaky validation split.** The 10% validation set is
+   drawn at random from the 2880 *augmented* training samples, so augmented
+   copies of the same clip appear on both sides; validation accuracy saturates
+   at 100% by epoch 2 and is not a meaningful number. It only chose when to
+   stop — the reported accuracy comes from the frozen actor-21-24 test set — but
+   it means the stopping point was steered by an optimistic signal.
+3. **BatchNorm is quantized by an explicit config**, with gamma/beta left in
+   float (see §4.3). The converted graph is INT8; the scale/offset parameters
+   are not.
+
+**On whether to rebuild FER in Keras**, which the script's automatic verdict
+recommends: that verdict fires on a threshold and does not know the two models
+differ. SER's PTQ failure is −11.25 points on a four-conv CNN; FER's is −21.25
+at seed 42 (−14.65 expected across calibration draws, per A4) on EfficientNet-B0,
+and A2/A3 showed that failure is distributed rather than concentrated in a few
+layers. QAT rescuing the small model is encouraging but not evidence it rescues
+the large one. Treat the 1–2 week rebuild as a reasonable bet, not a settled
+conclusion.
+
 ### 7.5 Paired significance tests (McNemar) — and a correction
 
 Every format is evaluated on the **same** held-out samples, so the comparison is
@@ -512,7 +606,7 @@ so formats can be computed in parallel processes and merged by a final pass.
 | A2 | **complete**, both models |
 | A3 | **complete**, both models |
 | A4 | **complete**, both models |
-| A5 | implemented and partly verified; **not run** (needs isolated venv) |
+| A5 | **complete** for SER (isolated venv); FER QAT is the open decision |
 | A6 | **complete**, both models — included in A1 |
 
 Nothing was reported as done that was not measured. The outstanding items are

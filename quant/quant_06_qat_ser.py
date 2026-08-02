@@ -52,6 +52,64 @@ from common import (get_logger, save_json, load_json, full_metrics, bootstrap_ci
 log = get_logger("quant_06_qat_ser")
 
 
+def make_bn_quantize_config(tfmot):
+    """tfmot's default scheme rejects a standalone BatchNormalization layer.
+
+    It only handles BN fused into a preceding Conv2D. The corrected architecture
+    puts the ReLU *inside* Conv2D (`Conv2D(..., activation="relu")`) and BN after
+    it, so no BN here is fusable and `quantize_model()` raises. Changing the layer
+    order to Conv -> BN -> ReLU would fix that, but it is a different network and
+    rule 3 forbids touching the architecture.
+
+    So BN is quantized through an explicit config instead: its output is
+    quantized to 8 bits, and gamma/beta stay float -- the same treatment tfmot
+    gives other layers that carry no quantizable kernel.
+    """
+    qk = tfmot.quantization.keras
+
+    class BNQuantizeConfig(qk.QuantizeConfig):
+        def get_weights_and_quantizers(self, layer):
+            return []
+
+        def set_quantize_weights(self, layer, quantize_weights):
+            pass
+
+        def get_activations_and_quantizers(self, layer):
+            return []
+
+        def set_quantize_activations(self, layer, quantize_activations):
+            pass
+
+        def get_output_quantizers(self, layer):
+            return [qk.quantizers.MovingAverageQuantizer(
+                num_bits=8, per_axis=False, symmetric=False, narrow_range=False)]
+
+        def get_config(self):
+            return {}
+
+    return BNQuantizeConfig
+
+
+def quantize_ser_model(tfmot, model):
+    """Annotate every layer, with the BN exception above, then apply.
+
+    Verified to carry the transferred weights through: the wrapped layers are the
+    original layer objects, and the caller re-checks accuracy afterwards.
+    """
+    qk = tfmot.quantization.keras
+    BNQuantizeConfig = make_bn_quantize_config(tfmot)
+    from tensorflow.keras.layers import BatchNormalization
+
+    def annotate(layer):
+        if isinstance(layer, BatchNormalization):
+            return qk.quantize_annotate_layer(layer, BNQuantizeConfig())
+        return qk.quantize_annotate_layer(layer)
+
+    annotated = tf.keras.models.clone_model(model, clone_function=annotate)
+    with qk.quantize_scope({"BNQuantizeConfig": BNQuantizeConfig}):
+        return qk.quantize_apply(annotated)
+
+
 def require_tfmot():
     try:
         import tensorflow_model_optimization as tfmot
@@ -178,10 +236,19 @@ def main():
         sys.exit(1)
 
     # ---- QAT fine-tune ------------------------------------------------
-    q_model = tfmot.quantization.keras.quantize_model(model)
+    q_model = quantize_ser_model(tfmot, model)
     q_model.compile(optimizer=tf.keras.optimizers.Adam(args.lr),
                     loss="categorical_crossentropy", metrics=["accuracy"])
     q_model.summary(print_fn=lambda s: log.info("%s", s))
+
+    # The wrapping must not have lost the transferred weights. Fake-quant noise
+    # makes this approximate, so it is reported rather than asserted -- but a
+    # large drop here means the weights did not survive quantize_apply.
+    q_prob = q_model.predict(Xte, verbose=0)
+    q_acc4 = float((four_class_summation(q_prob).argmax(1) == y4).mean())
+    log.info("after quantize_apply, before fine-tuning: 4-class %.4f "
+             "(float baseline %.4f, agreement %.3f)",
+             q_acc4, acc4, float((q_prob.argmax(1) == base_prob.argmax(1)).mean()))
 
     rng = np.random.default_rng(C.SEED)
     idx = rng.permutation(len(ytr))

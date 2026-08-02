@@ -55,7 +55,8 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import binomtest, chi2
 
-FORMATS = ["fp32", "fp16", "dynrange", "int8_full_perchannel", "int8_full_pertensor"]
+FORMATS = ["fp32", "fp16", "dynrange", "int8_full_perchannel", "int8_full_pertensor",
+           "qat_int8"]
 
 # Comparisons the paper leans on. Flagged in the console summary.
 KEY_PAIRS = [
@@ -63,6 +64,8 @@ KEY_PAIRS = [
     ("fp32", "dynrange"),                              # "preserves baseline"
     ("fp32", "int8_full_perchannel"),                  # "full INT8 collapses"
     ("dynrange", "int8_full_perchannel"),              # the deployment decision
+    ("qat_int8", "int8_full_perchannel"),              # A5 - does QAT rescue INT8
+    ("fp32", "qat_int8"),                              # A5 - does QAT match float
 ]
 
 EXACT_THRESHOLD = 25          # b+c below this -> exact binomial
