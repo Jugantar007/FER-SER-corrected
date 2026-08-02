@@ -43,6 +43,12 @@ def newest_cache(tag, fmt):
     eligible -- otherwise a delegated run would leave caches that a later
     reference-path staging silently picks up as "newest"."""
     from common import USE_XNNPACK
+    if USE_XNNPACK:
+        # quant_08 evaluates A1/A6 on the delegated path and writes one file per
+        # format under its own name; prefer that over the mtime-keyed caches.
+        direct = C.CACHE / f"xnn_preds_{tag}_{fmt}.npy"
+        if direct.exists():
+            return direct
     hits = [p for p in C.CACHE.glob(f"preds_{tag}_{fmt}_*.npy")
             if p.stem.endswith("_xnn") == USE_XNNPACK]
     hits.sort(key=lambda p: p.stat().st_mtime)

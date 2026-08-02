@@ -1,0 +1,334 @@
+{
+  "model": "ser",
+  "n_test_samples": 240,
+  "alpha": 0.05,
+  "multiple_comparison_correction": "Holm-Bonferroni within model",
+  "n_comparisons": 15,
+  "accuracy_by_format": {
+    "fp32": 70.833,
+    "fp16": 70.833,
+    "dynrange": 71.25,
+    "int8_full_perchannel": 60.0,
+    "int8_full_pertensor": 62.917,
+    "qat_int8": 70.0
+  },
+  "comparisons": [
+    {
+      "format_a": "fp32",
+      "format_b": "fp16",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.7083333333333334,
+      "acc_diff_points": 0.0,
+      "paired_ci95_points": [
+        0.0,
+        0.0
+      ],
+      "agreement": 1.0,
+      "b": 0,
+      "c": 0,
+      "n_discordant": 0,
+      "test": "none",
+      "statistic": null,
+      "p_value": 1.0,
+      "note": "formats produce identical predictions on every sample",
+      "p_holm": 1.0,
+      "significant_holm": false,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "fp32",
+      "format_b": "dynrange",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.7125,
+      "acc_diff_points": -0.417,
+      "paired_ci95_points": [
+        -2.5,
+        1.667
+      ],
+      "agreement": 0.9666666666666667,
+      "b": 3,
+      "c": 4,
+      "n_discordant": 7,
+      "test": "exact binomial",
+      "statistic": 3.0,
+      "p_value": 1.0,
+      "p_holm": 1.0,
+      "significant_holm": false,
+      "is_key_pair": true
+    },
+    {
+      "format_a": "fp32",
+      "format_b": "int8_full_perchannel",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.6,
+      "acc_diff_points": 10.833,
+      "paired_ci95_points": [
+        5.833,
+        15.833
+      ],
+      "agreement": 0.8083333333333333,
+      "b": 32,
+      "c": 6,
+      "n_discordant": 38,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 16.44736842105263,
+      "p_value": 5.001956843581317e-05,
+      "p_holm": 0.0007002739581013844,
+      "significant_holm": true,
+      "is_key_pair": true
+    },
+    {
+      "format_a": "fp32",
+      "format_b": "int8_full_pertensor",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.6291666666666667,
+      "acc_diff_points": 7.917,
+      "paired_ci95_points": [
+        3.333,
+        12.5
+      ],
+      "agreement": 0.825,
+      "b": 27,
+      "c": 8,
+      "n_discordant": 35,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 9.257142857142858,
+      "p_value": 0.0023457869795667934,
+      "p_holm": 0.023457869795667934,
+      "significant_holm": true,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "fp32",
+      "format_b": "qat_int8",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.7,
+      "acc_diff_points": 0.833,
+      "paired_ci95_points": [
+        -2.083,
+        3.75
+      ],
+      "agreement": 0.9458333333333333,
+      "b": 7,
+      "c": 5,
+      "n_discordant": 12,
+      "test": "exact binomial",
+      "statistic": 5.0,
+      "p_value": 0.7744140625,
+      "p_holm": 1.0,
+      "significant_holm": false,
+      "is_key_pair": true
+    },
+    {
+      "format_a": "fp16",
+      "format_b": "dynrange",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.7125,
+      "acc_diff_points": -0.417,
+      "paired_ci95_points": [
+        -2.5,
+        1.667
+      ],
+      "agreement": 0.9666666666666667,
+      "b": 3,
+      "c": 4,
+      "n_discordant": 7,
+      "test": "exact binomial",
+      "statistic": 3.0,
+      "p_value": 1.0,
+      "p_holm": 1.0,
+      "significant_holm": false,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "fp16",
+      "format_b": "int8_full_perchannel",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.6,
+      "acc_diff_points": 10.833,
+      "paired_ci95_points": [
+        5.833,
+        15.833
+      ],
+      "agreement": 0.8083333333333333,
+      "b": 32,
+      "c": 6,
+      "n_discordant": 38,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 16.44736842105263,
+      "p_value": 5.001956843581317e-05,
+      "p_holm": 0.0007002739581013844,
+      "significant_holm": true,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "fp16",
+      "format_b": "int8_full_pertensor",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.6291666666666667,
+      "acc_diff_points": 7.917,
+      "paired_ci95_points": [
+        3.333,
+        12.5
+      ],
+      "agreement": 0.825,
+      "b": 27,
+      "c": 8,
+      "n_discordant": 35,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 9.257142857142858,
+      "p_value": 0.0023457869795667934,
+      "p_holm": 0.023457869795667934,
+      "significant_holm": true,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "fp16",
+      "format_b": "qat_int8",
+      "accuracy_a": 0.7083333333333334,
+      "accuracy_b": 0.7,
+      "acc_diff_points": 0.833,
+      "paired_ci95_points": [
+        -2.083,
+        3.75
+      ],
+      "agreement": 0.9458333333333333,
+      "b": 7,
+      "c": 5,
+      "n_discordant": 12,
+      "test": "exact binomial",
+      "statistic": 5.0,
+      "p_value": 0.7744140625,
+      "p_holm": 1.0,
+      "significant_holm": false,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "dynrange",
+      "format_b": "int8_full_perchannel",
+      "accuracy_a": 0.7125,
+      "accuracy_b": 0.6,
+      "acc_diff_points": 11.25,
+      "paired_ci95_points": [
+        7.083,
+        15.833
+      ],
+      "agreement": 0.8416666666666667,
+      "b": 29,
+      "c": 2,
+      "n_discordant": 31,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 21.806451612903224,
+      "p_value": 3.0158433514168107e-06,
+      "p_holm": 4.523765027125216e-05,
+      "significant_holm": true,
+      "is_key_pair": true
+    },
+    {
+      "format_a": "dynrange",
+      "format_b": "int8_full_pertensor",
+      "accuracy_a": 0.7125,
+      "accuracy_b": 0.6291666666666667,
+      "acc_diff_points": 8.333,
+      "paired_ci95_points": [
+        4.167,
+        12.5
+      ],
+      "agreement": 0.85,
+      "b": 25,
+      "c": 5,
+      "n_discordant": 30,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 12.033333333333333,
+      "p_value": 0.0005225753951242464,
+      "p_holm": 0.00574832934636671,
+      "significant_holm": true,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "dynrange",
+      "format_b": "qat_int8",
+      "accuracy_a": 0.7125,
+      "accuracy_b": 0.7,
+      "acc_diff_points": 1.25,
+      "paired_ci95_points": [
+        -1.667,
+        4.583
+      ],
+      "agreement": 0.9291666666666667,
+      "b": 9,
+      "c": 6,
+      "n_discordant": 15,
+      "test": "exact binomial",
+      "statistic": 6.0,
+      "p_value": 0.6072387695312499,
+      "p_holm": 1.0,
+      "significant_holm": false,
+      "is_key_pair": false
+    },
+    {
+      "format_a": "int8_full_perchannel",
+      "format_b": "int8_full_pertensor",
+      "accuracy_a": 0.6,
+      "accuracy_b": 0.6291666666666667,
+      "acc_diff_points": -2.917,
+      "paired_ci95_points": [
+        -5.833,
+        -0.417
+      ],
+      "agreement": 0.9375,
+      "b": 2,
+      "c": 9,
+      "n_discordant": 11,
+      "test": "exact binomial",
+      "statistic": 2.0,
+      "p_value": 0.0654296875,
+      "p_holm": 0.4580078125,
+      "significant_holm": false,
+      "is_key_pair": true
+    },
+    {
+      "format_a": "int8_full_perchannel",
+      "format_b": "qat_int8",
+      "accuracy_a": 0.6,
+      "accuracy_b": 0.7,
+      "acc_diff_points": -10.0,
+      "paired_ci95_points": [
+        -15.0,
+        -5.0
+      ],
+      "agreement": 0.7916666666666666,
+      "b": 8,
+      "c": 32,
+      "n_discordant": 40,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 13.225,
+      "p_value": 0.0002762397239473395,
+      "p_holm": 0.0033148766873680735,
+      "significant_holm": true,
+      "is_key_pair": true
+    },
+    {
+      "format_a": "int8_full_pertensor",
+      "format_b": "qat_int8",
+      "accuracy_a": 0.6291666666666667,
+      "accuracy_b": 0.7,
+      "acc_diff_points": -7.083,
+      "paired_ci95_points": [
+        -12.083,
+        -2.083
+      ],
+      "agreement": 0.8041666666666667,
+      "b": 11,
+      "c": 28,
+      "n_discordant": 39,
+      "test": "chi-square (continuity corrected)",
+      "statistic": 6.564102564102564,
+      "p_value": 0.010405619868873605,
+      "p_holm": 0.08324495895098884,
+      "significant_holm": false,
+      "is_key_pair": false
+    }
+  ],
+  "method_note": "McNemar's test on paired predictions over the same held-out test set. Exact binomial used when the discordant count is below 25, otherwise chi-square with continuity correction. Confidence intervals are paired bootstrap intervals on the accuracy DIFFERENCE, not marginal intervals on each format."
+}

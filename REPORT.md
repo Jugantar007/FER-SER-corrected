@@ -39,11 +39,14 @@ The five findings the paper should carry:
 4. **QAT fixes it on SER** — indistinguishable from FP32 at INT8 size — but
    dynamic range already achieves that in less space, so QAT matters only for
    targets that cannot run float activations at all (§7, A5).
-5. **The format recommendation is architecture-dependent once latency is real.**
-   On SER, dynamic range is both the most accurate and the fastest build. On FER
-   it is the most accurate and the *slowest* — 216 ms against full INT8's 7.7 ms
-   — because XNNPACK's dynamic-range support does not cover the depthwise
-   convolutions EfficientNet-B0 is built from (§7.6).
+5. **The format recommendation is architecture-dependent once latency is real —
+   on the runtime version measured.** On SER, dynamic range is both the most
+   accurate and the fastest build. On FER it is the most accurate and the
+   *slowest* — 216 ms against full INT8's 7.7 ms — because **in ai-edge-litert
+   2.1.4** XNNPACK's dynamic-range kernel coverage does not extend to the
+   depthwise convolutions EfficientNet-B0 is built from. This is a version
+   coverage gap, not a property of the format: a later XNNPACK that adds hybrid
+   depthwise support would dissolve it (§7.6).
 
 ---
 
@@ -605,6 +608,11 @@ while their marginal intervals overlap almost completely. McNemar's test uses on
 the discordant samples (one format right, the other wrong), which is the correct
 paired test for two classifiers on one test set.
 
+> The table below is computed on **reference-kernel** predictions, matching §7's
+> accuracies. The same tests on delegated predictions are in §7.6 — no conclusion
+> differs, but the magnitudes do, and a p-value must be quoted from the same path
+> as the accuracy beside it.
+
 `mcnemar_compare.py`, Holm-corrected across the 10 within-model comparisons, with
 paired bootstrap CIs on the difference:
 
@@ -674,24 +682,44 @@ measurement therefore ran on TFLite's reference kernels. Version matters: the
 2.1.6 build in A5's venv *does* delegate by default, which is why the QAT run
 printed `Created TensorFlow Lite XNNPACK delegate for CPU.` and nothing else did.
 
-**Latency, 8 threads, x86** (not a deployment measurement — Group B owns that):
+**Latency, 8 threads, x86** (not a deployment measurement — Group B owns that).
+Delegated figures are from `quant_08` over the full test set (1948 / 240 real
+images); the no-delegate column is a 5–20 invocation microbenchmark on random
+input, because a full non-delegated pass costs 20 minutes per format. **Run-to-run
+variance on the delegated column is ±2 ms** — repeat measurements of `fer_fp32`
+gave 10.3, 11.7 and 12.2 ms — so the speedup ratios are order-of-magnitude
+statements, not precise ones.
 
-| model | no delegate | XNNPACK | speedup |
+| model | no delegate | XNNPACK (full test set) | speedup |
 |---|---|---|---|
-| fer_fp32 | 150.2 ms | 12.2 ms | 12× |
-| fer_dynrange | 337.6 ms | **216.2 ms** | **1.6×** |
-| fer_int8_full_perchannel | 600.6 ms | 8.3 ms | 72× |
-| ser_fp32 | 14.4 ms | 4.8 ms | 3× |
-| ser_dynrange | 337.2 ms | 2.6 ms | 130× |
+| fer_fp32 | 150.2 ms | 10.3 ms | ~13× |
+| fer_fp16 | 115.5 ms | 12.4 ms | ~10× |
+| fer_dynrange | 337.6 ms | **216.3 ms** | **1.6×** |
+| fer_int8_full_perchannel | 600.6 ms | 7.7 ms | ~75× |
+| fer_int8_full_pertensor | — | 7.8 ms | — |
+| ser_fp32 | 14.4 ms | 4.6 ms | ~3× |
+| ser_dynrange | 337.2 ms | 2.2 ms | ~130× |
+| ser_int8_full_perchannel | 426.8 ms | 2.5 ms | ~170× |
 
-The 1.6× on FER dynamic range is the whole story in one number: XNNPACK's
-dynamic-range (hybrid) support does not cover depthwise convolutions, which is
-what EfficientNet-B0 mostly is, so those ops stay on reference kernels. SER's
-four plain Conv2Ds get the full 130×.
+The 1.6× on FER dynamic range is the whole story in one number: **in
+`ai-edge-litert` 2.1.4**, XNNPACK's dynamic-range (hybrid) kernel coverage does
+not extend to depthwise convolutions, which is most of EfficientNet-B0, so those
+ops stay on reference kernels. SER's four plain Conv2Ds get the full ~130×.
+
+**This is a coverage gap in one runtime version, not a property of dynamic-range
+quantization.** XNNPACK's hybrid op coverage has broadened over releases, and if a
+later build adds depthwise support, FER dynamic range should drop toward the
+~10 ms range and finding #5 dissolves. Anyone repeating this must state their
+litert/XNNPACK version beside the number; ours is **ai-edge-litert 2.1.4** (and
+2.1.6 in A5's venv, which differs in delegate defaults but was not benchmarked).
 
 #### A1/A6 on both paths
 
-| FER | XNNPACK | reference | Δ | agree w/ fp32 | ms |
+Δ here is **XNNPACK − reference** for the same build (the delegate's effect), not
+a comparison against FP32. Accuracy against FP32 is read off the column itself:
+82.49 − 71.82 = −10.68 for full INT8 per-channel.
+
+| FER | XNNPACK | reference | Δ (xnn − ref) | agree w/ fp32 | ms |
 |---|---|---|---|---|---|
 | fp32 | 82.49 | 82.49 | +0.00 | — | 10.3 |
 | fp16 | 82.55 | 82.55 | +0.00 | 0.9995 | 12.4 |
@@ -705,15 +733,44 @@ bit-identical across paths on both models** — fp32 reproduces 82.49% exactly �
 which is the control that proves the harness is sound and isolates the divergence
 to quantized graphs.
 
-Two consequences:
+Two consequences. **Note which comparison each number makes** — the two differ by
+basis, not by measurement:
 
-- **A1's magnitude halves.** Full INT8 on FER costs **−10.68 points**, not
-  −21.25. Still a collapse worth reporting — nobody ships 71.82% when 82.80%
-  costs the same — but half the published figure was the fallback implementation.
+- **A1's magnitude halves.** Full INT8 on FER costs **−10.68 points against
+  FP32** (71.82 vs 82.49), not −21.25. The same build is **+10.57 points against
+  its own reference-kernel result** (71.82 vs 61.24). Both appear in this report;
+  the first is the quantization penalty, the second is the delegate's effect.
+  Still a collapse worth reporting — nobody ships 71.82% when 82.80% costs the
+  same — but half the published penalty was the fallback implementation.
 - **A6 strengthens.** The per-channel/per-tensor gap widens from 28.03 to
-  **40.61 points**, because the delegate rescues per-channel (+10.57) and mildly
-  penalises per-tensor (−2.00). "Per-channel is essential on FER" is a stronger
-  claim on the deployment path than on reference kernels.
+  **40.61 points**, because the delegate rescues per-channel (+10.57 vs its own
+  reference result) and mildly penalises per-tensor (−2.00). "Per-channel is
+  essential on FER" is a stronger claim on the deployment path than on reference
+  kernels.
+
+#### Paired tests on the delegated path
+
+§7.5's McNemar results use reference-kernel predictions. Quoting a p-value from
+one execution path beside an accuracy from another is not defensible, so the
+tests were re-run on delegated predictions (`mcnemar_*_xnnpack.json`):
+
+| model / view | comparison | Δ pts (A − B) | p (Holm) | verdict |
+|---|---|---|---|---|
+| FER | fp32 vs dynrange | −0.31 | 1.0 | no difference |
+| FER | fp32 vs int8 per-ch | +10.68 | 1.3e−21 | significant |
+| FER | per-ch vs per-tensor | **+40.61** | 2.7e−116 | significant |
+| SER 4-class | fp32 vs dynrange | −0.42 | 1.0 | no difference |
+| SER 4-class | fp32 vs int8 per-ch | +10.83 | 0.0007 | significant |
+| SER 4-class | fp32 vs qat_int8 | +0.83 | 1.0 | no difference |
+| SER 4-class | per-ch vs qat_int8 | −10.00 | 0.0033 | significant |
+| SER 4-class | per-ch vs per-tensor | −2.92 | 0.458 | not significant |
+
+**No conclusion changes.** Dynamic range remains a tested non-difference from
+FP32 on both models; the INT8 collapse remains significant; QAT remains
+indistinguishable from FP32 and significantly better than PTQ; and the withdrawn
+SER per-channel/per-tensor "reversal" stays withdrawn (p_Holm = 0.458 delegated,
+0.156 on reference kernels — non-significant either way). Cite whichever path
+your accuracies come from, and do not mix.
 
 #### A4 on both paths
 

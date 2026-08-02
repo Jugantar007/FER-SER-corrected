@@ -428,17 +428,25 @@ default**, 2.1.4 does not.
 Float formats are unaffected — FP32 reproduces 82.49% on both paths. Quantized
 graphs are not:
 
-| FER | XNNPACK | reference | ms (xnn) |
+| FER | XNNPACK | reference | ms (xnn, ±2) |
 |---|---|---|---|
+| fp32 | 82.49 | 82.49 | 10.3 |
 | dynrange | 82.80 | 82.44 | 216.3 |
 | int8_full_perchannel | **71.82** | 61.24 | 7.7 |
 | int8_full_pertensor | 31.21 | 33.21 | 7.8 |
 
-SER moves ≤0.83 points on any format while running up to 130× faster.
+SER moves ≤0.83 points on any format while running up to ~130× faster.
+
+**Version-pin any latency you quote from this table: `ai-edge-litert` 2.1.4.**
+FER dynamic range is slow here because that build's XNNPACK lacks hybrid
+depthwise coverage — a version-specific gap, not a property of the format. A
+later XNNPACK with hybrid depthwise support would change it.
 
 What changes, in one line each:
 
-- **A1**: the FER INT8 penalty is −10.7 points, not −21.25.
+- **A1**: the FER INT8 penalty is −10.68 points against FP32, not −21.25. (The
+  same build is +10.57 against its own reference-kernel number; different basis,
+  same measurement — do not quote them interchangeably.)
 - **A6**: the per-channel/per-tensor gap *widens*, 28.03 → 40.61 points.
 - **A4**: calibration spread halves, 17.40 → 8.78 points — still large enough
   that a single number should not be cited.
@@ -454,7 +462,10 @@ conclude dynamic range is unusably slow, and recommend against the format this
 paper recommends. Check for `Created TensorFlow Lite XNNPACK delegate for CPU.`
 and record the runtime build with every latency number.
 
-Delegated results are committed as `*_xnnpack.json` beside the reference ones.
+Delegated results are committed as `*_xnnpack.json` beside the reference ones,
+**including the McNemar tests** (`mcnemar_fer_xnnpack.json`,
+`mcnemar_ser_xnnpack.json`) — a p-value and an accuracy quoted together must come
+from the same path. No conclusion differs between paths; only the magnitudes do.
 Prediction caches carry an `_xnn` suffix and are **not** interchangeable.
 
 ### Paired significance tests (McNemar)

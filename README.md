@@ -103,11 +103,13 @@ the correction has to be declared rather than left for a reviewer.
   points across 18 calibration draws on the deployment path (17.4 on reference
   kernels), so cite mean ± SD over seeds rather than a single run
   (`quant_calibration_sensitivity_fer_xnnpack.json`).
-- **The best format for FER depends on which axis you optimise.** Dynamic range
-  is the most accurate (82.80%) and the *slowest* (216 ms); full INT8 is fastest
-  (7.7 ms) at −10.7 points; fp16 matches FP32 accuracy at FP32 speed and half the
-  file size, but dequantizes to fp32 in RAM. There is no single winner, and the
-  paper should not imply one.
+- **The best format for FER depends on which axis you optimise — and on the
+  runtime version.** Dynamic range is the most accurate (82.80%) and the
+  *slowest* (216 ms); full INT8 is fastest (7.7 ms) at −10.68 points; fp16 matches
+  FP32 accuracy at FP32 speed and half the file size, but dequantizes to fp32 in
+  RAM. There is no single winner, and the paper should not imply one. The latency
+  ordering is specific to **ai-edge-litert 2.1.4**, whose XNNPACK lacks hybrid
+  depthwise coverage; quote the version with the number.
 - **QAT received 15 epochs of fine-tuning that post-training quantization did
   not.** The control that would separate quantization-awareness from extra
   training was not run.
