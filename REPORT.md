@@ -14,9 +14,10 @@ account of getting there.
 
 **All six items are run.** The four findings the paper should carry:
 
-1. **Dynamic range is the deployment answer** on both models — baseline accuracy
-   at ~4× compression, and a *tested* non-difference from FP32 (p = 1.0), not
-   merely an overlapping interval.
+1. **Dynamic range is the deployment answer** on both models — no statistically
+   detectable accuracy difference from FP32 (p = 1.0 paired, not merely an
+   overlapping interval) at ~4× compression. Accuracy, note, not behaviour: it
+   still disagrees with FP32 on 4.9% of FER test images.
 2. **Full INT8 collapses**, and on FER the size of that collapse is not a fixed
    quantity: it spans 17.4 points across 18 calibration draws, so A1's −21.25
    should be cited as mean ± SD, not as the number (§7, A4).
@@ -289,11 +290,19 @@ truth for A1/A6.
 
 ### A1 + A6 — full held-out test sets
 
-**FER, n = 1948.** The FP32 TFLite control reproduces the PyTorch baseline to the
-digit, so the conversion chain is clean and every drop below is quantization, not
-conversion — which is exactly the role the README assigns the fp32 build.
+**FER, n = 1948.** The FP32 TFLite control lands at 82.49%, matching the
+published figure; the PyTorch re-run from the checkpoint gave 82.44% (§6), a
+0.05-point gap consistent with GPU non-determinism and equal to one test image
+in 1948. The conversion chain is therefore clean *to within that tolerance*, and
+the large drops below are quantization rather than conversion — which is the role
+the README assigns the fp32 build. It is not a digit-for-digit reproduction and
+should not be described as one.
 
-| format | MB | acc % | bal acc | macro F1 | kappa | agree | Δ pts | mean KL |
+Δ pts is **format − fp32**, so a negative value means the format is worse than
+the FP32 control. §7.5's paired table uses the opposite convention (A − B, the
+tool's argument order), which is why FER dynrange appears there as +0.05.
+
+| format | MB | acc % | bal acc | macro F1 | kappa | agree | Δ pts (fmt − fp32) | mean KL |
 |---|---|---|---|---|---|---|---|---|
 | fp32 | 16.04 | 82.49 | 81.18 | 0.819 | 0.756 | 1.000 | — | 0.0000 |
 | fp16 | 8.08 | 82.55 | 81.22 | 0.820 | 0.757 | 0.999 | +0.05 | 0.0000 |
@@ -311,8 +320,23 @@ conversion — which is exactly the role the README assigns the fp32 build.
 | int8_full_perchannel | 0.45 | 59.58 | 0.568 | [53.33, 65.83] | 50.83 |
 | int8_full_pertensor | 0.43 | 62.50 | 0.605 | [56.25, 68.75] | 52.08 |
 
-The paper's central claim holds on both models: **dynamic range preserves
-baseline behaviour while full INT8 collapses.**
+The paper's central claim holds on both models, but it needs stating precisely.
+Dynamic range shows **no statistically detectable accuracy difference from FP32
+(p = 1.0, paired McNemar), with 95.1% top-1 agreement on FER** — while full INT8
+collapses.
+
+The two halves of that sentence are not the same claim. Accuracy is preserved;
+*per-sample behaviour is not identical*. On FER the dynamic-range build disagrees
+with FP32 on **4.9% of test images** (mean KL 0.0176), and those disagreements
+happen to cancel almost exactly — 44 samples gained, 43 lost. "Preserves baseline
+behaviour", unqualified, claims the stronger thing and is not what was measured.
+
+This is also an argument for the methodology rather than an embarrassment to it.
+A 5% behavioural divergence is invisible to an 8-sample spot check — the expected
+number of disagreements in 8 images is 0.4 — so the original verification could
+not have detected it in either direction. Measuring agreement and KL on the full
+test set is what makes the distinction between "same accuracy" and "same model"
+observable at all.
 
 **A6.** For FER, per-channel beats per-tensor by 28 points (61.24 vs 33.21). For
 SER the point estimates run the other way (62.50 vs 59.58) — but the paired test
@@ -543,7 +567,13 @@ paired test for two classifiers on one test set.
 `mcnemar_compare.py`, Holm-corrected across the 10 within-model comparisons, with
 paired bootstrap CIs on the difference:
 
-| model / view | comparison | Δ pts | b | c | n disc | p | p (Holm) | verdict |
+Δ pts here is **A − B** in the "comparison" column — the tool's argument order,
+the opposite of §7's format-minus-fp32. FER dynrange is the case where the two
+tables look contradictory: −0.05 in §7 (dynrange is 0.05 below fp32) and +0.05
+here (fp32 is 0.05 above dynrange). Same measurement, both correct, stated in
+opposite directions.
+
+| model / view | comparison | Δ pts (A − B) | b | c | n disc | p | p (Holm) | verdict |
 |---|---|---|---|---|---|---|---|---|
 | FER | fp32 vs dynrange | +0.05 | 44 | 43 | 87 | 1.0 | 1.0 | no difference |
 | FER | fp32 vs int8 per-ch | +21.25 | — | — | — | 3.2e−57 | 2.2e−56 | significant |

@@ -75,6 +75,32 @@ runbook, the decisions taken while implementing, and the verification results.
 Latency, memory and thermal numbers are Group B and need the Raspberry Pi; nothing
 here substitutes for them.
 
+### Limitations to carry into the paper
+
+These belong in the manuscript's limitations, not only in `REPORT.md`. This work
+exists because an evaluation protocol was wrong; anything of that class found in
+the correction has to be declared rather than left for a reviewer.
+
+- **A5's early stopping used a validation split with augmentation leakage.** The
+  10% validation set is drawn at random from the 2880 augmented training samples,
+  so augmented copies of the same clip fall on both sides of it and validation
+  accuracy saturates at 100% by the second epoch. It selected only the stopping
+  epoch — every reported accuracy comes from the frozen actor-21-24 test set, and
+  the train/val/test actor split itself is disjoint — but the stopping point was
+  chosen on an optimistic signal. A speaker-disjoint carve would remove it.
+- **"Dynamic range preserves the baseline" means accuracy, not behaviour.** There
+  is no statistically detectable accuracy difference from FP32 (p = 1.0, paired
+  McNemar), but the FER build disagrees with FP32 on 4.9% of test images. State
+  the agreement rate alongside the accuracy.
+- **Full-INT8 accuracy on FER is a distribution, not a number.** It moves 17.4
+  points across 18 calibration draws, so cite mean ± SD over seeds rather than a
+  single run (`quant_calibration_sensitivity_fer.json`).
+- **QAT received 15 epochs of fine-tuning that post-training quantization did
+  not.** The control that would separate quantization-awareness from extra
+  training was not run.
+
+`REPORT.md` §9 lists what a follow-on study should measure to close each of these.
+
 ## Citing results
 
 The `*_corrected_results.json` file in each `outputs/` subfolder is the source of truth
