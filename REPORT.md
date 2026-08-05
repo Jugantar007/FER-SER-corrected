@@ -1268,5 +1268,5 @@ command.
 | `0d0c530` | REPORT brought up to date with the completed study |
 | `46acd09` | Four overclaims corrected ("to the digit", the Δ sign convention, "preserves behaviour", the leaky-split disclosure) |
 | `fd067b4` | §7.6 — the XNNPACK execution-path finding; A1/A6, A3, A4 re-run delegated; `quant_08`; cache keys made path-aware |
-| _pending_ | §7.6 — SER fp16 and both per-tensor latencies added to the latency table; SER A1/A6 given its own both-paths table |
-| _pending_ | §7.6 — the k=5 delegate-prepare failure diagnosed (`quant_12`); the "runtime refuses to run this graph" claim withdrawn and the k=5 row measured at 72.79% |
+| `7331c8b` | §7.6 — SER fp16 and both per-tensor latencies added to the latency table; SER A1/A6 given its own both-paths table |
+| `9b3ca51` | §7.6 — the k=5 delegate-prepare failure diagnosed (`quant_12`); the "runtime refuses to run this graph" claim withdrawn and the k=5 row measured at 72.79% |
