@@ -34,7 +34,7 @@ The five findings the paper should carry:
    path (§7 A4, §7.6).
 3. **The collapse is distributed, not localised.** A2 finds the largest error in
    the squeeze-and-excitation pools; A3 shows exempting those layers recovers
-   almost nothing — **+0.77 points at best** on the deployment path, across
+   almost nothing — **+0.98 points at best** on the deployment path, across
    k = 3 to 15 (§7 A3, §7.6).
 4. **QAT fixes it on SER** — indistinguishable from FP32 at INT8 size — but
    dynamic range already achieves that in less space, so QAT matters only for
@@ -262,6 +262,12 @@ row but left `max(runs, key=...)` and the plot to consume it, so the sweep
 completed all four builds and then died in the summary. Two runs were lost to
 that. The lesson is mundane and general: adding a sentinel value means finding
 everything that reads it.
+
+A second lesson arrived later, and it is the more expensive one. The sentinel was
+treated as a *finding* — the failure had been seen three times, so it was written
+up as reproducible and a deployment-risk conclusion was built on it. All three
+sightings were in one process, and the process was the variable that mattered.
+See §7.6; the conclusion is withdrawn and the k=5 row is now measured.
 
 ---
 
@@ -798,10 +804,27 @@ statements, not precise ones.
 | fer_fp16 | 115.5 ms | 12.4 ms | ~10× |
 | fer_dynrange | 337.6 ms | **216.3 ms** | **1.6×** |
 | fer_int8_full_perchannel | 600.6 ms | 7.7 ms | ~75× |
-| fer_int8_full_pertensor | — | 7.8 ms | — |
+| fer_int8_full_pertensor | not measured | 7.8 ms | — |
 | ser_fp32 | 14.4 ms | 4.6 ms | ~3× |
+| ser_fp16 | not measured | 4.4 ms | — |
 | ser_dynrange | 337.2 ms | 2.2 ms | ~130× |
 | ser_int8_full_perchannel | 426.8 ms | 2.5 ms | ~170× |
+| ser_int8_full_pertensor | not measured | 2.3 ms | — |
+
+"not measured" means the no-delegate microbenchmark was never run for that
+build, not that it is fast or slow. The delegated column is complete: all ten
+figures come from `quant_format_evaluation_xnnpack.json`
+(`ms_per_image_x86_xnnpack`). The three gaps are all in the ad-hoc
+reference-kernel column, and none of them carries a claim in this report.
+
+**fp16 buys size, not speed, on both models.** FER 12.4 ms vs fp32's 10.3 and
+SER 4.4 vs 4.6 are all inside the ±2 ms run-to-run band — the format halves the
+file (16.0→8.1 MB, 1.70→0.86 MB) and leaves latency where it was. That is
+expected: TFLite fp16 stores weights at half width and dequantizes to fp32 at
+load, so activations and arithmetic stay fp32. **Per-tensor is not faster than
+per-channel either** (FER 7.8 vs 7.7 ms, SER 2.3 vs 2.5 ms, both within noise),
+which matters for A6: per-tensor's 40.61-point accuracy loss on FER buys 0.73 MB
+of file size and no measurable time.
 
 The 1.6× on FER dynamic range is the whole story in one number: **in
 `ai-edge-litert` 2.1.4**, XNNPACK's dynamic-range (hybrid) kernel coverage does
@@ -829,11 +852,27 @@ a comparison against FP32. Accuracy against FP32 is read off the column itself:
 | int8_full_perchannel | **71.82** | 61.24 | **+10.57** | 0.7505 | 7.7 |
 | int8_full_pertensor | 31.21 | 33.21 | −2.00 | 0.3537 | 7.8 |
 
-SER moves by at most 0.83 points on any format (4-class deployed: 70.83 / 70.83 /
-71.25 / 60.00 / 62.92), while running up to 130× faster. **The float formats are
+| SER (4-class) | XNNPACK | reference | Δ (xnn − ref) | agree w/ fp32 | MB | ms |
+|---|---|---|---|---|---|---|
+| fp32 | 70.83 | 70.83 | +0.00 | — | 1.70 | 4.6 |
+| fp16 | 70.83 | 70.83 | +0.00 | 1.0000 | 0.86 | 4.4 |
+| dynrange | **71.25** | **71.25** | +0.00 | 0.9542 | 0.45 | 2.2 |
+| int8_full_perchannel | 60.00 | 59.58 | +0.42 | 0.7625 | 0.45 | 2.5 |
+| int8_full_pertensor | 62.92 | 62.50 | +0.42 | 0.7500 | 0.43 | 2.3 |
+
+Agreement is measured on the 8-class head, before summation. SER moves by at
+most 0.83 points on any format on either path (that maximum is on the 8-class
+view; on the 4-class view nothing moves more than 0.42), while running up to
+130× faster. **The float formats are
 bit-identical across paths on both models** — fp32 reproduces 82.49% exactly —
 which is the control that proves the harness is sound and isolates the divergence
 to quantized graphs.
+
+**Do not read SER's per-tensor row as beating per-channel.** The +2.92 apparent
+advantage rests on 9 discordant samples and does not survive correction
+(p_Holm = 0.458 delegated; see §7.5 and the McNemar table below). On SER the two
+INT8 variants are a tested non-difference, which is itself the finding: A6's
+"per-channel is essential" holds on FER and has no demonstrated effect on SER.
 
 Two consequences. **Note which comparison each number makes** — the two differ by
 basis, not by measurement:
@@ -896,25 +935,103 @@ explanation is offered for that, because none was measured.
 
 #### A3 on both paths
 
-| k | MB | XNNPACK | reference |
-|---|---|---|---|
-| 3 | 4.891 | 72.18 | 63.19 |
-| 5 | 4.898 | **fails to prepare** | 63.14 |
-| 10 | 4.960 | 72.59 | 62.68 |
-| 15 | 5.210 | 72.18 | 62.83 |
+| k | MB | XNNPACK | reference | Δ (xnn − ref) |
+|---|---|---|---|---|
+| 3 | 4.891 | 72.18 | 63.19 | +8.99 |
+| 5 | 4.898 | **72.79** | 63.14 | +9.65 |
+| 10 | 4.960 | 72.59 | 62.68 | +9.91 |
+| 15 | 5.210 | 72.18 | 62.83 | +9.35 |
 
 **A3's conclusion sharpens.** Against delegated full INT8 (71.82%), the best
-selective build buys **+0.77 points** — down from +1.95 — and the curve is flat to
-within 0.41 points across k = 3 to 15. Exempting five times as many layers changes
+selective build buys **+0.98 points** — down from +1.95 — and the curve is flat to
+within 0.61 points across k = 3 to 15. Exempting five times as many layers changes
 nothing measurable, which states "the failure is distributed" more cleanly than
 the reference-kernel version did.
 
-It also adds a practical objection that did not exist before: **k=5 produces a
-graph XNNPACK accepts and then fails to prepare** (`Node number 255
-(TfLiteXNNPackDelegate) failed to prepare`), reproducibly across three runs. It
-executes fine on reference kernels. Selective quantization can therefore yield a
-model a deployment runtime refuses to run, and it is not predictable from k — k=10
-and k=15 exempt strictly more layers and prepare without complaint.
+The k=5 delegated figure was recorded as `null` until 2026-08-05 because XNNPACK
+failed to build its runtime for that graph. **That failure was diagnosed and is
+not a property of the model** — see below. The row is now measured, and its
+delegate delta (+9.65) sits inside the +8.99…+9.91 band the other three occupy,
+which is the check that it is a real number and not an artefact of the retry.
+
+#### The k=5 delegate-prepare failure: diagnosed
+
+Earlier revisions of this report called this failure "reproducible" and drew a
+conclusion from it — that selective quantization can yield a model a deployment
+runtime refuses to run. **That conclusion was wrong and is withdrawn.** What the
+original sweep saw was real, but it is a flaky runtime defect, not a property of
+the k=5 graph's structure.
+
+The error is `failed to create XNNPACK runtime` / `Node number 255
+(TfLiteXNNPackDelegate) failed to prepare`. Five findings, each measured:
+
+1. **Node 255 is not a model layer — it is the XNNPACK delegate node itself.**
+   k=5's delegated execution plan has 256 nodes (indices 0–255) and the delegate
+   node is always last. k=3's is node 253, k=10's is node 265, each likewise the
+   final index. The number encodes graph size, nothing else. Any reading of
+   "node 255" as pointing at a specific op is a misreading of the message.
+2. **k=5 is structurally unremarkable.** All three builds delegate into exactly
+   **one partition with 170 inputs and 1 output** — identical shape. On every
+   axis that distinguishes the builds, k=5 sits *between* k=3 and k=10:
+   float32 4-D activation islands 9 / **13** / 26, QUANTIZE–DEQUANTIZE pairs
+   4 / **5** / 10, float MEAN ops 1 / **2** / 3. There is no monotone structural
+   property that singles it out.
+3. **Three conditions must coincide.** Each was isolated by running every trial
+   in its own process (the outcome is decided once per process and sticky
+   afterwards, so trials sharing a process are not independent):
+
+   | condition (1 thread) | k=5 | k=3 / k=10 / k=15 |
+   |---|---|---|
+   | prior interpreter built and dropped in-process | **18/30 fail** | 0/30, 0/30, 0/30 |
+   | only interpreter in a fresh process | 0/30 | 0/30, 0/30, 0/30 |
+
+   So it is specific to k=5's graph *and* probabilistic — both at once. A fresh
+   process never failed, at any k or thread count tested.
+4. **It is thread-dependent, in the direction that rules out capacity.** Under
+   the failing pattern, *fewer* threads means *more* failures — pooled over
+   three independent sweeps of 30 trials each:
+
+   | threads | 1 | 2 | 4 | 8 | 16 |
+   |---|---|---|---|---|---|
+   | failure rate | **59%** | 31% | 18% | 4% | 10% |
+
+   A threadpool or per-thread workspace shortage would do the opposite. Combined
+   with the requirement that a previous interpreter be constructed and
+   destroyed first, the signature is stale allocator state reused by XNNPACK's
+   runtime creation.
+
+   This also explains why it stayed hidden: at the repo's default of 8 threads
+   it is close to the least likely configuration to show, and a batch of 30
+   trials there can read as 0/30. **The rate itself is unstable** — six
+   independent batches of 30 in the 1-thread poisoned cell gave 13, 14, 15, 18,
+   19 and 20 failures (99/180 pooled, 55%) — so treat all of these as rough
+   probabilities, not constants.
+5. **When it does prepare, the result is exact.** Two independent runs returned
+   0.7279260780287474 to the last digit. A partially-initialised runtime would
+   not do that, so the 72.79% above is trustworthy.
+
+**What this changes.** A3's substantive finding — selective quantization does not
+recover full INT8 — is untouched and slightly strengthened, since the curve is now
+complete with no missing point. What is withdrawn is the *deployment-risk*
+claim built on top of it. The honest version: a build can hit a probabilistic
+runtime-creation failure in **ai-edge-litert 2.1.4**, which is a bug to report
+upstream and to retry around, not a reason to distrust mixed-precision graphs.
+
+**Why k=5 and not the others is still open.** Everything above establishes what
+the failure is *not* — not structural, not capacity, not a property of selective
+quantization — and that it needs k=5's specific graph. It does not explain which
+allocation in that graph collides with the freed arena. Settling that needs an
+ASAN build of XNNPACK, which is outside this study. Stated as an open question
+in §10 rather than papered over.
+
+**The methodological lesson is the one worth keeping.** A failure observed three
+times in one process, in a sweep that builds models in sequence, was recorded as
+"reproducible" — and a conclusion was drawn from a sample that never varied the
+one thing that mattered. Re-running in a fresh process took under a minute and
+reversed the finding. Before a crash becomes evidence, vary the process, not just
+the run.
+
+Reproduce with `python quant/quant_12_delegate_prepare_diag.py --trials 15`.
 
 #### SER on the delegated path — measured, not argued
 
@@ -938,8 +1055,10 @@ reference kernels do badly, they do it to EfficientNet-B0's depthwise/SE
 structure, not to a four-layer plain CNN.
 
 No SER selective build hit the delegate-prepare failure that FER's k=5 produces,
-so that fault belongs to one specific graph rather than to mixed-precision builds
-as a class.
+which was the first hint that the fault belonged to one specific graph rather
+than to mixed-precision builds as a class. The diagnosis above confirms it and
+goes further: it is not a property of that graph either, but a runtime defect
+the graph happens to trigger.
 
 #### A2 cannot be measured on the delegated path
 
@@ -1073,6 +1192,13 @@ is ruled out.
 5. ~~SER on the delegated path for A3/A4~~ — **done**, see §7.6. SER is
    path-invariant on both: A4's spread is 7.92 points on either path, A3's builds
    move ≤0.83. The argument held, but it is now measured.
+6. **Which allocation in the k=5 graph collides with the freed arena.** §7.6
+   establishes that the delegate-prepare failure is a runtime defect rather than
+   a structural property, and that it needs k=5's specific graph plus a
+   destroyed prior interpreter plus a low thread count. It does not identify the
+   offending allocation — that needs an ASAN build of XNNPACK, which is outside
+   this study. Worth an upstream bug report against `ai-edge-litert` 2.1.4 with
+   `fer_int8_selective_k5.tflite` and `quant_12` attached as the reproducer.
 
 ---
 
@@ -1103,7 +1229,15 @@ QUANT_XNNPACK=1 python quant/quant_05_selective_quant.py --model fer --ks 3 5 10
 QUANT_XNNPACK=1 python quant/quant_04_calibration_sensitivity.py --model fer --restart
 ```
 
-`--restart` is not optional on that last one: the resume cache holds
+The k=5 selective build hits a probabilistic XNNPACK runtime-creation failure
+(§7.6). It is not a property of the model — retry, or run in a fresh process.
+To reproduce the diagnosis:
+
+```bash
+python quant/quant_12_delegate_prepare_diag.py --trials 30   # ~12 min
+```
+
+`--restart` is not optional on the A4 command above: the resume cache holds
 reference-kernel configs and must not be mixed with delegated ones. The scripts
 write to the same filenames on both paths, so back up (or rename) the
 reference-kernel result first — the committed copies in `outputs/quant/` are the
@@ -1134,3 +1268,5 @@ command.
 | `0d0c530` | REPORT brought up to date with the completed study |
 | `46acd09` | Four overclaims corrected ("to the digit", the Δ sign convention, "preserves behaviour", the leaky-split disclosure) |
 | `fd067b4` | §7.6 — the XNNPACK execution-path finding; A1/A6, A3, A4 re-run delegated; `quant_08`; cache keys made path-aware |
+| _pending_ | §7.6 — SER fp16 and both per-tensor latencies added to the latency table; SER A1/A6 given its own both-paths table |
+| _pending_ | §7.6 — the k=5 delegate-prepare failure diagnosed (`quant_12`); the "runtime refuses to run this graph" claim withdrawn and the k=5 row measured at 72.79% |
