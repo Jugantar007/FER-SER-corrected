@@ -1315,4 +1315,4 @@ command.
 | `fd067b4` | §7.6 — the XNNPACK execution-path finding; A1/A6, A3, A4 re-run delegated; `quant_08`; cache keys made path-aware |
 | `7331c8b` | §7.6 — SER fp16 and both per-tensor latencies added to the latency table; SER A1/A6 given its own both-paths table |
 | `9b3ca51` | §7.6 — the k=5 delegate-prepare failure diagnosed (`quant_12`); the "runtime refuses to run this graph" claim withdrawn and the k=5 row measured at 72.79% |
-| _pending_ | A5-control's fine-tuned PTQ build staged into `mcnemar_compare.py`; the fine-tuning step tested on both paths and both class views; the p = 0.013 asymmetry corrected — neither step survives Holm |
+| `368786e` | A5-control's fine-tuned PTQ build staged into `mcnemar_compare.py`; the fine-tuning step tested on both paths and both class views; the p = 0.013 asymmetry corrected — neither step survives Holm |
