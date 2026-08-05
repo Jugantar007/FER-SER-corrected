@@ -56,7 +56,7 @@ import numpy as np
 from scipy.stats import binomtest, chi2
 
 FORMATS = ["fp32", "fp16", "dynrange", "int8_full_perchannel", "int8_full_pertensor",
-           "qat_int8"]
+           "qat_int8", "ptq_finetuned_int8"]
 
 # Comparisons the paper leans on. Flagged in the console summary.
 KEY_PAIRS = [
@@ -66,6 +66,8 @@ KEY_PAIRS = [
     ("dynrange", "int8_full_perchannel"),              # the deployment decision
     ("qat_int8", "int8_full_perchannel"),              # A5 - does QAT rescue INT8
     ("fp32", "qat_int8"),                              # A5 - does QAT match float
+    ("ptq_finetuned_int8", "int8_full_perchannel"),    # A5-control - the fine-tuning step
+    ("qat_int8", "ptq_finetuned_int8"),                # A5-control - QAT's own margin
 ]
 
 EXACT_THRESHOLD = 25          # b+c below this -> exact binomial

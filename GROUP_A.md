@@ -409,16 +409,23 @@ not an option and QAT is.
 model, same 15 epochs, same seed and split, but plain fine-tuning followed by
 post-training quantization:
 
-| build | 4-class | step | p |
-|---|---|---|---|
-| PTQ(baseline) | 59.58 | — | — |
-| PTQ(fine-tuned) | **65.42** | +5.83 | 0.013 |
-| QAT | 70.00 | +4.58 | 0.061 (n.s.) |
+| build | 4-class ref | 4-class delegated | step | p | p_Holm |
+|---|---|---|---|---|---|
+| PTQ(baseline) | 59.58 | 60.00 | — | — | — |
+| PTQ(fine-tuned) | **65.42** | **65.42** | +5.83 / +5.42 | 0.014 / 0.026 | 0.140 / 0.259 |
+| QAT | 70.00 | 70.00 | +4.58 | 0.063 | 0.507 / 0.570 |
 
-So **+5.83 of the +10.42 is the extra training**, and QAT's own contribution does
-not reach significance on 240 samples. Extra training makes the model more
+So the +10.42 (+10.00 delegated) *point estimate* splits roughly two-thirds extra
+training, one-third quantization awareness — but **neither step reaches
+significance on 240 samples once both sit inside the corrected family**, on either
+path. Report the split as a point estimate. Extra training makes the model more
 *quantizable* without making it more accurate — the fine-tuned float model is
-actually worse (69.17% vs 70.83%).
+actually worse (69.17% vs 70.83%) — and that direction is consistent across both
+paths and both class views even though the p-values are null.
+
+An earlier revision quoted p = 0.013 for the fine-tuning step and called QAT's
+step "not significant". That asymmetry came from testing one comparison inside
+`mcnemar_compare.py` and the other outside it; both are now staged by `quant_07`.
 
 Remaining caveat: early stopping used a validation split with augmentation
 leakage, which affects the stopping point, not the reported test number.

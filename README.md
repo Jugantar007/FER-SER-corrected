@@ -116,12 +116,14 @@ the correction has to be declared rather than left for a reviewer.
   deployment path (p = 9.2e−5) — while looking 5.08 points better on reference
   kernels. Float accuracy is not a proxy for quantized accuracy, and neither is
   the non-delegated path a proxy for deployment.
-- **Most of QAT's advantage is the extra training, not quantization awareness.**
-  The control (same model, same 15 epochs, plain fine-tuning then post-training
-  quantization) reaches 65.42% against QAT's 70.00% and PTQ's 59.58%: +5.83 points
-  from training (p = 0.013), +4.58 from QAT itself (p = 0.061, not significant at
-  n = 240). Report QAT's margin over a *fine-tuned* PTQ baseline, not over an
-  untrained one.
+- **QAT's advantage looks mostly like the extra training, but the split is a
+  point estimate, not a demonstrated result.** The control (same model, same 15
+  epochs, plain fine-tuning then post-training quantization) reaches 65.42%
+  against QAT's 70.00% and PTQ's 59.58% — so +5.83 from training and +4.58 from
+  QAT itself (+5.42 / +4.58 on the deployed path). **Neither step survives Holm
+  correction on either path** (p_Holm 0.140–0.259 and 0.507–0.570); 240 samples
+  cannot resolve either. Report QAT's margin over a *fine-tuned* PTQ baseline
+  rather than an untrained one, and report the decomposition as an estimate.
 
 `REPORT.md` §9 lists what a follow-on study should measure to close each of these.
 

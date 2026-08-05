@@ -6,19 +6,25 @@ Format A & Format B & Acc A & Acc B & $\Delta$ & $p_{\mathrm{Holm}}$ & Sig. \\
 \hline
 fp32 & fp16 & 70.83 & 70.83 & +0.00 & 1.00e+00 & ns \\
 fp32 & dynrange & 70.83 & 71.25 & -0.42 & 1.00e+00 & ns \\
-fp32 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 2.68e-04 & *** \\
-fp32 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 1.12e-02 & * \\
+fp32 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 3.83e-04 & *** \\
+fp32 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 1.79e-02 & * \\
 fp32 & qat int8 & 70.83 & 70.00 & +0.83 & 1.00e+00 & ns \\
+fp32 & ptq finetuned int8 & 70.83 & 65.42 & +5.42 & 8.64e-02 & ns \\
 fp16 & dynrange & 70.83 & 71.25 & -0.42 & 1.00e+00 & ns \\
-fp16 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 2.68e-04 & *** \\
-fp16 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 1.12e-02 & * \\
+fp16 & int8 full perchannel & 70.83 & 59.58 & +11.25 & 3.83e-04 & *** \\
+fp16 & int8 full pertensor & 70.83 & 62.50 & +8.33 & 1.79e-02 & * \\
 fp16 & qat int8 & 70.83 & 70.00 & +0.83 & 1.00e+00 & ns \\
-dynrange & int8 full perchannel & 71.25 & 59.58 & +11.67 & 2.72e-05 & *** \\
-dynrange & int8 full pertensor & 71.25 & 62.50 & +8.75 & 1.42e-03 & ** \\
+fp16 & ptq finetuned int8 & 70.83 & 65.42 & +5.42 & 8.64e-02 & ns \\
+dynrange & int8 full perchannel & 71.25 & 59.58 & +11.67 & 3.81e-05 & *** \\
+dynrange & int8 full pertensor & 71.25 & 62.50 & +8.75 & 2.13e-03 & ** \\
 dynrange & qat int8 & 71.25 & 70.00 & +1.25 & 1.00e+00 & ns \\
-int8 full perchannel & int8 full pertensor & 59.58 & 62.50 & -2.92 & 2.73e-01 & ns \\
-int8 full perchannel & qat int8 & 59.58 & 70.00 & -10.42 & 1.42e-03 & ** \\
-int8 full pertensor & qat int8 & 62.50 & 70.00 & -7.50 & 4.66e-02 & * \\
+dynrange & ptq finetuned int8 & 71.25 & 65.42 & +5.83 & 3.61e-02 & * \\
+int8 full perchannel & int8 full pertensor & 59.58 & 62.50 & -2.92 & 3.52e-01 & ns \\
+int8 full perchannel & qat int8 & 59.58 & 70.00 & -10.42 & 2.13e-03 & ** \\
+int8 full perchannel & ptq finetuned int8 & 59.58 & 65.42 & -5.83 & 1.40e-01 & ns \\
+int8 full pertensor & qat int8 & 62.50 & 70.00 & -7.50 & 7.57e-02 & ns \\
+int8 full pertensor & ptq finetuned int8 & 62.50 & 65.42 & -2.92 & 1.00e+00 & ns \\
+qat int8 & ptq finetuned int8 & 70.00 & 65.42 & +4.58 & 5.07e-01 & ns \\
 \hline
 \end{tabular}
 \end{table}

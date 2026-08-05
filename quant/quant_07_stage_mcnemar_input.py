@@ -140,6 +140,27 @@ def stage(out_root):
     else:
         log.info("no QAT build staged (run quant_06_qat_ser.py for A5)")
 
+    # ---- A5-control's fine-tuned PTQ build -----------------------------
+    # quant_09 writes no cache under the standard key either, and its
+    # fine-tuning step (+5.83 reference / +5.42 delegated) was for a long time
+    # quoted with an ad-hoc p-value computed outside this harness. Staging it
+    # here puts that comparison under the same paired test and the same Holm
+    # correction as everything else, on whichever path is active.
+    ptq_ft = C.MODELS / "ser_ptq_finetuned_int8.tflite"
+    if ptq_ft.exists():
+        from common import run_tflite
+        Xte = np.load(C.CACHE / "ser_test.npz")["X"].astype(np.float32) / 255.0
+        P8 = run_tflite(ptq_ft, Xte, "ser/ptq_finetuned_int8")
+        P4 = four_class_summation(P8)
+        np.save(raw / "ser_ptq_finetuned_int8_probs.npy", P8)
+        np.save(dep / "ser_ptq_finetuned_int8_probs.npy", P4)
+        staged_ser.append("ptq_finetuned_int8")
+        log.info("ser/%-22s 8-class %.4f | 4-class %.4f  <- %s",
+                 "ptq_finetuned_int8", (P8.argmax(1) == y8).mean(),
+                 (P4.argmax(1) == y4).mean(), ptq_ft.name)
+    else:
+        log.info("no fine-tuned PTQ build staged (run quant_09_qat_control_ser.py)")
+
     manifest["views"]["ser_8class"] = {"dir": "raw", "n": int(len(y8)),
                                        "formats": staged_ser, "classes": C.EMOTION8}
     manifest["views"]["ser_4class_summation"] = {

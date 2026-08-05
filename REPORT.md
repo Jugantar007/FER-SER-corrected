@@ -39,10 +39,12 @@ The five findings the paper should carry:
 4. **QAT fixes it on SER** — indistinguishable from FP32 at INT8 size — but
    dynamic range already achieves that in less space, so QAT matters only for
    targets that cannot run float activations at all. **And most of QAT's margin
-   over post-training quantization is just the extra training**: fine-tuning the
-   float model for the same 15 epochs and then quantizing recovers +5.83 of the
-   +10.42 (p = 0.013), leaving QAT's own contribution at +4.58 and not
-   significant (§7 A5-control).
+   over post-training quantization looks like the extra training**: fine-tuning
+   the float model for the same 15 epochs and then quantizing recovers +5.83 of
+   the +10.42 (+5.42 of +10.00 on the deployed path), leaving QAT's own
+   contribution at +4.58. **Neither step survives Holm correction** (p_Holm 0.140
+   and 0.507 reference, 0.259 and 0.570 delegated), so cite the split as a point
+   estimate, not a demonstrated result (§7 A5-control).
 5. **The format recommendation is architecture-dependent once latency is real —
    on the runtime version measured.** On SER, dynamic range is both the most
    accurate and the fastest build. On FER it is the most accurate and the
@@ -617,34 +619,62 @@ the same float model, fine-tuned for the same 15 epochs with the same
 hyper-parameters, split and seed — then post-training quantized. The only
 difference from A5 is that no quantization wrappers were applied before training.
 
-| build | 4-class | 8-class | step | p (McNemar, uncorrected) |
+Both builds are now staged into `mcnemar_compare.py` (`quant_07`) rather than
+tested ad hoc, so these p-values come from the same paired test and the same Holm
+family as every other comparison, on both execution paths. Committed as
+`mcnemar_ser{,_xnnpack}.json` for the deployed 4-class view and
+`mcnemar_ser8{,_xnnpack}.json` for the 8-class view — four separate Holm
+families, one per (path, view). **The step and its
+p-value both depend on the execution path**, because the fine-tuned build scores
+the same on either path but the PTQ baseline it is measured against does not:
+
+| build | 4-class ref | 4-class delegated | 8-class ref | 8-class delegated |
 |---|---|---|---|---|
-| PTQ(baseline) | 59.58 | 50.83 | — | — |
-| **PTQ(fine-tuned)** | **65.42** | 55.42 | **+5.83** | **0.013** |
-| QAT | 70.00 | 60.42 | +4.58 | **0.061** |
+| PTQ(baseline) | 59.58 | 60.00 | 50.83 | 50.42 |
+| **PTQ(fine-tuned)** | **65.42** | **65.42** | 55.42 | 55.00 |
+| QAT | 70.00 | 70.00 | 60.42 | 60.42 |
 
-Identical on the delegated path (65.42 either way; PTQ baseline 60.00 there), so
-this does not depend on execution path.
+| step | path | Δ pts | discordant | p | **p_Holm** |
+|---|---|---|---|---|---|
+| fine-tuning (PTQ base → PTQ ft), 4-class | reference | +5.83 | 28 | 0.014 | **0.140** |
+| fine-tuning, 4-class | delegated | **+5.42** | 29 | 0.026 | **0.259** |
+| fine-tuning, 8-class | reference | +4.58 | 27 | 0.054 | 0.518 |
+| fine-tuning, 8-class | delegated | +4.58 | 31 | 0.072 | 0.652 |
+| QAT's own margin (PTQ ft → QAT), 4-class | reference | +4.58 | 29 | 0.063 | 0.507 |
+| QAT's own margin, 4-class | delegated | +4.58 | 29 | 0.063 | 0.570 |
 
-**A5's headline decomposes, and the part attributable to QAT is not significant.**
-Of the +10.42 points QAT held over post-training quantization, **+5.83 comes from
-the extra 15 epochs alone** (p = 0.013) and **+4.58 from quantization awareness**
-— which at 29 discordant samples does not reach significance (p = 0.061
-uncorrected, and worse under any correction). Fine-tuning and then post-training
-quantizing captures most of the measurable benefit.
+**A5's headline decomposes, and neither part survives correction.** Of the +10.42
+points QAT held over post-training quantization (+10.00 delegated), the larger
+share is the extra 15 epochs and the remainder is quantization awareness — but
+once both comparisons sit inside the corrected family, **neither reaches
+significance on either path**: the fine-tuning step is p_Holm = 0.140 (reference)
+and 0.259 (delegated), QAT's own margin 0.507 and 0.570.
+
+An earlier revision reported the fine-tuning step as p = 0.013 and treated it as
+established while calling QAT's +4.58 "not significant". That asymmetry was an
+artefact of testing one comparison inside the harness and the other outside it.
+Uncorrected, the two are 0.014 and 0.063 — closer than the earlier presentation
+implied — and corrected, both are null. **The decomposition is a point estimate,
+not a demonstrated split.** Fine-tuning and then post-training quantizing still
+captures most of the *measured* benefit; that ordering is what 240 samples
+support, not the significance of either step.
 
 **The inference I had used to argue the confound away was wrong**, and the way it
 was wrong is worth recording. The fine-tuned float model is *less* accurate than
 the baseline (69.17% vs 70.83% 4-class), which I had taken as evidence that extra
 training could not explain QAT's gain. But its INT8 conversion is 5.83 points
-better. Extra training made the model **more quantizable without making it more
-accurate** — quantizability and accuracy are different properties, and reasoning
-from one to the other does not work.
+better on reference kernels and 5.42 on the deployed path. Extra training made
+the model **more quantizable without making it more accurate** — quantizability
+and accuracy are different properties, and reasoning from one to the other does
+not work. That remains the durable lesson here even though neither step is
+individually significant: the *direction* is consistent across both paths and
+both class views, which is more than the p-values alone carry.
 
-Two things this does *not* say. It does not show QAT is useless: +4.58 points is
-a real point estimate and 240 samples has little power to resolve it — "not
-demonstrated" is not "no effect". And it does not touch A5's other result, that
-QAT INT8 is statistically indistinguishable from FP32 (p_Holm = 1.0).
+Two things this does *not* say. It does not show QAT is useless, and it does not
+show fine-tuning is: both point estimates are real and 240 samples has little
+power to resolve either — "not demonstrated" is not "no effect". And it does not
+touch A5's other result, that QAT INT8 is statistically indistinguishable from
+FP32 (p_Holm = 1.0 on both paths).
 
 **What it changes for FER was tested and did not hold.** The case for rebuilding
 EfficientNet-B0 in Keras for QAT (1–2 weeks) rested on QAT's margin over PTQ, and
@@ -737,8 +767,8 @@ opposite directions.
 | FER | per-ch vs per-tensor | +28.03 | 847 | 301 | 1148 | 3.2e−58 | 2.3e−57 | significant |
 | SER 8-class | per-ch vs per-tensor | −1.25 | 3 | 6 | 9 | 0.508 | 1.0 | not significant |
 | SER 4-class | fp32 vs dynrange | −0.42 | 3 | 4 | 7 | 1.0 | 1.0 | no difference |
-| SER 4-class | fp32 vs int8 per-ch | +11.25 | — | — | — | 1.9e−05 | 1.7e−04 | significant |
-| SER 4-class | per-ch vs per-tensor | −2.92 | 1 | 8 | 9 | **0.039** | **0.156** | **not significant** |
+| SER 4-class | fp32 vs int8 per-ch | +11.25 | — | — | — | 1.9e−05 | 3.8e−04 | significant |
+| SER 4-class | per-ch vs per-tensor | −2.92 | 1 | 8 | 9 | **0.039** | **0.352** | **not significant** |
 
 **The correction.** §7 originally read the SER per-channel/per-tensor gap
 (62.50% vs 59.58%) as the ordering "reversing" between models, and called it a
@@ -901,17 +931,29 @@ tests were re-run on delegated predictions (`mcnemar_*_xnnpack.json`):
 | FER | fp32 vs int8 per-ch | +10.68 | 1.3e−21 | significant |
 | FER | per-ch vs per-tensor | **+40.61** | 2.7e−116 | significant |
 | SER 4-class | fp32 vs dynrange | −0.42 | 1.0 | no difference |
-| SER 4-class | fp32 vs int8 per-ch | +10.83 | 0.0007 | significant |
+| SER 4-class | fp32 vs int8 per-ch | +10.83 | 0.0010 | significant |
 | SER 4-class | fp32 vs qat_int8 | +0.83 | 1.0 | no difference |
-| SER 4-class | per-ch vs qat_int8 | −10.00 | 0.0033 | significant |
-| SER 4-class | per-ch vs per-tensor | −2.92 | 0.458 | not significant |
+| SER 4-class | per-ch vs qat_int8 | −10.00 | 0.0050 | significant |
+| SER 4-class | per-ch vs per-tensor | −2.92 | 0.570 | not significant |
 
 **No conclusion changes.** Dynamic range remains a tested non-difference from
 FP32 on both models; the INT8 collapse remains significant; QAT remains
 indistinguishable from FP32 and significantly better than PTQ; and the withdrawn
-SER per-channel/per-tensor "reversal" stays withdrawn (p_Holm = 0.458 delegated,
-0.156 on reference kernels — non-significant either way). Cite whichever path
+SER per-channel/per-tensor "reversal" stays withdrawn (p_Holm = 0.570 delegated,
+0.352 on reference kernels — non-significant either way). Cite whichever path
 your accuracies come from, and do not mix.
+
+**Why SER's Holm values differ from revisions before 2026-08-05.** Adding
+A5-control's `ptq_finetuned_int8` build to the staged formats (§7 A5-control)
+grew SER's comparison family from 15 pairs to 21, and Holm's step-down scales
+with family size. Every SER p_Holm therefore rose slightly — e.g. fp32 vs INT8
+per-channel 0.0007 → 0.0010 delegated, per-channel vs per-tensor 0.458 → 0.570.
+**No verdict flipped**, in either direction, on either path: every comparison
+significant at α = 0.05 before is significant after, and every non-significant
+one stays non-significant. The uncorrected p-values are unchanged, because they
+do not depend on the family. FER is untouched (10 comparisons, byte-identical) —
+its own fine-tuned build has never been staged, which is an asymmetry worth
+closing if FER's A5-control numbers are cited with p-values.
 
 #### A4 on both paths
 
@@ -1149,8 +1191,10 @@ expected benefit considerably** — three results have accumulated against the
 optimistic reading:
 
 - **A5-control**: on SER, only +4.58 of QAT's +10.42 point margin is attributable
-  to quantization awareness, and that part does not reach significance
-  (p = 0.061). The demonstrated effect is from the extra training.
+  to quantization awareness. Neither that part nor the +5.83 training part
+  survives Holm correction (p_Holm 0.507 and 0.140 reference; 0.570 and 0.259
+  delegated), so the decomposition bounds the plausible benefit rather than
+  demonstrating a split.
 - **A5-control-FER**: the cheap version of that extra training — fine-tune, then
   post-training quantize — is *worse* than plain PTQ on FER's deployment path
   (−4.57, p = 9.2e−5). SER's pattern does not transfer, and the one
@@ -1172,8 +1216,9 @@ conclusion. Genuinely open: items 2 and 3, plus one new question raised by item
 is ruled out.
 
 1. ~~The QAT confound~~ and ~~fine-tune-then-PTQ on FER~~ — **both done**, see
-   §7 A5-control and A5-control-FER. On SER, +5.83 of QAT's +10.42 is the extra
-   training and QAT's own +4.58 is not significant. On FER the same recipe is
+   §7 A5-control and A5-control-FER. On SER the +10.42 splits as +5.83 extra
+   training and +4.58 quantization awareness, but neither step survives Holm on
+   either path — a point estimate, not a split. On FER the same recipe is
    **worse than plain PTQ** on the deployment path (−4.57, p = 9.2e−5), because
    it yields a better float model that quantizes worse. What remains open is
    whether a genuine QAT rebuild helps FER — the cheap substitute does not.
@@ -1270,3 +1315,4 @@ command.
 | `fd067b4` | §7.6 — the XNNPACK execution-path finding; A1/A6, A3, A4 re-run delegated; `quant_08`; cache keys made path-aware |
 | `7331c8b` | §7.6 — SER fp16 and both per-tensor latencies added to the latency table; SER A1/A6 given its own both-paths table |
 | `9b3ca51` | §7.6 — the k=5 delegate-prepare failure diagnosed (`quant_12`); the "runtime refuses to run this graph" claim withdrawn and the k=5 row measured at 72.79% |
+| _pending_ | A5-control's fine-tuned PTQ build staged into `mcnemar_compare.py`; the fine-tuning step tested on both paths and both class views; the p = 0.013 asymmetry corrected — neither step survives Holm |
