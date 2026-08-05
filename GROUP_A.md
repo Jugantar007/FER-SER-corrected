@@ -476,8 +476,11 @@ What changes, in one line each:
 - **A6**: the per-channel/per-tensor gap *widens*, 28.03 → 40.61 points.
 - **A4**: calibration spread halves, 17.40 → 8.78 points — still large enough
   that a single number should not be cited.
-- **A3**: the best selective build buys +0.77 points over full INT8, down from
-  +1.95; and k=5 produces a graph XNNPACK **refuses to prepare**.
+- **A3**: the best selective build buys +0.98 points over full INT8, down from
+  +1.95. (k=5 was long recorded as "XNNPACK refuses to prepare this graph".
+  That was **wrong and is withdrawn** — it is a probabilistic runtime defect in
+  litert 2.1.4, not a property of the build. Diagnosed in `quant_12`; the row
+  is now measured at 72.79%. See REPORT.md §7.6.)
 - **A2**: cannot be re-run delegated. `QuantizationDebugger` takes no delegate
   argument and delegation fuses away the intermediates it reads (484 tensors →
   415). Per-layer profiling is inherently a reference-kernel measurement.

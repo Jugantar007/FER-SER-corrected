@@ -275,11 +275,20 @@ def _interpreter(model_path=None, model_content=None, num_threads=None):
 class DelegatePrepareError(RuntimeError):
     """XNNPACK accepted the graph then failed to prepare its runtime.
 
-    Seen on one selective (mixed-precision) FER build: k=5 fails at node 255
-    while k=3, k=10 and k=15 prepare fine. Raised as its own type so callers can
-    record "this build does not run on the deployment path" instead of crashing
-    -- and so it is never silently downgraded to a reference-kernel run, which
-    would mix execution paths inside one result file.
+    Seen on one selective (mixed-precision) FER build: k=5 fails at "node 255"
+    while k=3, k=10 and k=15 prepare fine.
+
+    This is a FLAKY RUNTIME DEFECT, not a property of the model. quant_12
+    pins it down: node 255 is the delegate node itself (always the last index in
+    the delegated plan), k=5 is structurally unremarkable, and the failure needs
+    a prior interpreter destroyed in-process plus a low thread count -- a fresh
+    process is 0/30 at every thread count. Retrying in a new process works; the
+    k=5 accuracy was recovered that way. Do NOT read this exception as "the
+    deployment runtime refuses to run this model".
+
+    Raised as its own type so callers can retry or record the build as unmeasured
+    instead of crashing -- and so it is never silently downgraded to a
+    reference-kernel run, which would mix execution paths inside one result file.
     """
 
 

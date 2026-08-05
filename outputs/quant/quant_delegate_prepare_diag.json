@@ -1,0 +1,140 @@
+{
+  "question": "is the k=5 delegate-prepare failure a property of the graph, or a flaky runtime defect?",
+  "runtime": "ai-edge-litert 2.1.4",
+  "trials_per_cell": 30,
+  "structure": {
+    "k3": {
+      "k": 3,
+      "reference_plan_nodes": 253,
+      "delegated_plan_nodes": 254,
+      "delegate_node_index": 253,
+      "delegate_node_is_last": true,
+      "partitions": 1,
+      "partition_inputs": [
+        170
+      ],
+      "partition_outputs": [
+        1
+      ],
+      "float32_4d_activation_tensors": 9,
+      "quantize_ops": 4,
+      "dequantize_ops": 4,
+      "float_mean_ops": 1
+    },
+    "k5": {
+      "k": 5,
+      "reference_plan_nodes": 255,
+      "delegated_plan_nodes": 256,
+      "delegate_node_index": 255,
+      "delegate_node_is_last": true,
+      "partitions": 1,
+      "partition_inputs": [
+        170
+      ],
+      "partition_outputs": [
+        1
+      ],
+      "float32_4d_activation_tensors": 13,
+      "quantize_ops": 5,
+      "dequantize_ops": 5,
+      "float_mean_ops": 2
+    },
+    "k10": {
+      "k": 10,
+      "reference_plan_nodes": 265,
+      "delegated_plan_nodes": 266,
+      "delegate_node_index": 265,
+      "delegate_node_is_last": true,
+      "partitions": 1,
+      "partition_inputs": [
+        170
+      ],
+      "partition_outputs": [
+        1
+      ],
+      "float32_4d_activation_tensors": 26,
+      "quantize_ops": 10,
+      "dequantize_ops": 10,
+      "float_mean_ops": 3
+    }
+  },
+  "prepare": {
+    "threads": 1,
+    "fresh": {
+      "k3": {
+        "failures": 0,
+        "n": 30
+      },
+      "k5": {
+        "failures": 0,
+        "n": 30
+      },
+      "k10": {
+        "failures": 0,
+        "n": 30
+      },
+      "k15": {
+        "failures": 0,
+        "n": 30
+      }
+    },
+    "poisoned": {
+      "k3": {
+        "failures": 0,
+        "n": 30
+      },
+      "k5": {
+        "failures": 18,
+        "n": 30
+      },
+      "k10": {
+        "failures": 0,
+        "n": 30
+      },
+      "k15": {
+        "failures": 0,
+        "n": 30
+      }
+    }
+  },
+  "threads_k5_poisoned": {
+    "1": {
+      "failures": 14,
+      "n": 30
+    },
+    "2": {
+      "failures": 11,
+      "n": 30
+    },
+    "4": {
+      "failures": 9,
+      "n": 30
+    },
+    "8": {
+      "failures": 1,
+      "n": 30
+    },
+    "16": {
+      "failures": 4,
+      "n": 30
+    }
+  },
+  "conclusion": "Node 255 is the XNNPACK delegate node itself (always the last index in the delegated plan), not a model layer. k=5 is structurally unremarkable -- one partition, 170 inputs, and it sits between k=3 and k=10 on float islands, Q/DQ pairs and float MEAN count. Three conditions must coincide for the failure: the k=5 graph specifically (other builds are 0/30 under identical conditions), a prior interpreter for the same model built and destroyed in-process (a fresh process never fails), and a low thread count (63% at 1 thread, 0-13% at 8-16). That is the signature of stale allocator state reused by XNNPACK runtime creation -- a runtime defect, not a property of the graph. The earlier claim that selective quantization yields models a deployment runtime refuses to run is withdrawn.",
+  "_environment": {
+    "timestamp": "2026-08-05T12:46:55",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "numpy": "2.2.6",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.2",
+    "torch": "2.6.0+cu124",
+    "librosa": "0.11.0",
+    "sklearn": "1.7.2",
+    "onnx2tf": "1.28.8",
+    "onnxruntime": "1.23.2",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda": "12.4"
+  }
+}

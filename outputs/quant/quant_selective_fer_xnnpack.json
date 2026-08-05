@@ -57,9 +57,12 @@
         "model/tf.math.reduce_mean_5/Mean"
       ],
       "size_mb": 4.898,
-      "accuracy": null,
-      "delegate_prepare_failed": true,
-      "note": "XNNPACK accepted the graph then failed to prepare its runtime; this build does not run on the delegated path"
+      "accuracy": 0.7279260780287474,
+      "note": "measured 2026-08-05. XNNPACK runtime creation for this build fails probabilistically (see quant_delegate_prepare_diag.json); retried until it prepared. Two independent runs agreed to the last digit, and the delegate delta vs the reference-kernel result (+9.65) sits inside the +8.99..+9.91 band the other three builds occupy.",
+      "macro_f1": 0.6899449605423629,
+      "ci95_low": 0.7079055441478439,
+      "ci95_high": 0.7474332648870636,
+      "accuracy_delta_vs_fp32_points": -9.7
     },
     {
       "k_layers_kept_float": 10,
@@ -117,7 +120,7 @@
       "mean_kl_divergence": 0.4072278026215232
     }
   ],
-  "verdict": "best selective build (k=10) reaches 72.59% at 4.960 MB, +0.77 points vs full INT8 (71.82%) and -9.91 points vs FP32. Full INT8 is NOT recovered to FP32 level; report this honestly and use it to bound how much of the failure a few layers explain.",
+  "verdict": "best selective build (k=5) reaches 72.79% at 4.898 MB, +0.98 points vs full INT8 (71.82%) and -9.70 points vs FP32. Full INT8 is NOT recovered to FP32 level; report this honestly and use it to bound how much of the failure a few layers explain.",
   "claim_to_check": "If a selective build reaches FP32-level accuracy at a size near full INT8, full integer quantization is recoverable and this is a novel result for the paper.",
   "_environment": {
     "timestamp": "2026-08-02T20:48:39",
